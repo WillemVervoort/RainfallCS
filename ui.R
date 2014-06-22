@@ -8,7 +8,6 @@ shinyUI(fluidPage(
                  # first choose the station
                  textInput("Station", label = h4("Enter Station name"), 
                            value = ""),
-                 submitButton("Submit"),
                  br(),
                  # now choose Temperature or Rainfall
                  selectInput("type", 
@@ -18,8 +17,10 @@ shinyUI(fluidPage(
                  br(),
                  # now choose the time period
                  br(),
-                 dateRangeInput("dates", label = h4("Date range"),
-                                start=c("2004-01-01"),end="2014-01-01"),
+                 dateRangeInput('dateRange',
+                                label = 'Date range input: yyyy-mm-dd',
+                                start = Sys.Date() - 2, end = Sys.Date() + 2
+                 ),
                  submitButton("Submit")
                  ),
     mainPanel(h3("Data and analysis"),
