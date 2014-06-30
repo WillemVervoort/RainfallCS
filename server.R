@@ -8,8 +8,9 @@ library(shiny)
 # colnames(stations) <-c("Site","Dist","Site_name","Start","End","Lat",
 #                        "Lon","Source","STA","Height_m","Bar_ht","WMO")
 # save(stations, file="Stations.Rdata")
+# this could be moved to a helper script
 load("stations.Rdata")
-
+source("dataripper.r")
 # This is the server part
 shinyServer(function(input, output) {
   
@@ -19,18 +20,12 @@ shinyServer(function(input, output) {
 # find the station in the 
   StationInput <- reactive({
     # find the station name in the station data set
-      SelectStation <- stations[grep(input$Station,
-                                     stations$Site_name,ignore.case=T),"Site"]
-      # temporary, just use the first one, later work out how to deal with this
-      SelectStation <- SelectStation[1]
-      temp <- tempfile()
-      download.file(paste("http://www.bom.gov.au/jsp/ncc/cdio/weatherData/av?p_display_type=dailyZippedDataFile&p_stn_num=0",SelectStation,"&p_c=-1069999971&p_nccObsCode=136&p_startYear=2014",sep=""),
-                    temp, mode="wb")
-      raindata <- read.table(unz(temp, paste("IDCJAC0009_0",SelectStation,"_1800.zip",sep=""),"r"))
-      unlink(temp)
-      
-      
+      name <- stations[grep(input$Station,stations$Site_name,ignore.case=T),"Site"][1]
   })
+  
+  data <- isolate(bomDailyObs(as.numeric(StationInput()),observation="rain"))
+  
+  
   
   TypeInput <- reactive({
       SelectType <- input$type
@@ -54,12 +49,15 @@ shinyServer(function(input, output) {
   # need to work out what database (huge? or just small)
   
   # and create a plot
-  output$plot <- renderPlot({    
+  output$plot <- renderPlot({ 
+    input$Submit
     # this code only runs when renderplot is called
-  #  chartSeries(dataInput(), theme = chartTheme("white"), 
-   #             type = "line", log.scale = input$log, TA = NULL)
+    isolate(plot(data$Date,data$rainfall,type="h",col="blue"))
+    })
+  output$testoutput1 <- renderPrint({
+  #  input$Submit
+    str(StationInput())
   })
-  #output$testoutput1 <- renderText(paste("station selected =",as.character(SelectStation[1])))
   #output$testoutput1 <- renderText(paste("station selected =",as.character(TypeInput)))
   # on a second tab, extract the database info, summarise and plot
   

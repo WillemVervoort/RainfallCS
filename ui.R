@@ -7,7 +7,7 @@ shinyUI(fluidPage(
     sidebarPanel(h3("Settings"),
                  # first choose the station
                  textInput("Station", label = h4("Enter Station name"), 
-                           value = ""),
+                           value = "Observatory hill"),
                  br(),
                  # now choose Temperature or Rainfall
                  selectInput("type", 
@@ -25,9 +25,9 @@ shinyUI(fluidPage(
                  ),
     mainPanel(h3("Data and analysis"),
               textOutput("testoutput1"),
-              textOutput("testoutput2"),
+            #  textOutput("testoutput2"),
                 
-              #renderPlot(),
+              plotOutput("plot"),
               "Comment:this app is going to allow people to analyse different temperature and rainfall timeseries")
     
   )
