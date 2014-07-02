@@ -9,21 +9,28 @@ shinyUI(fluidPage(
                  textInput("Station", label = h4("Enter Station name"), 
                            value = "Observatory hill"),
                  br(),
+                 selectInput("state", label = "State or Territory",
+                             choices = c("ACT", "NSW", "QLD", "VIC", "WA", "TAS", "NT"),
+                             selected ="NSW"),
+                 br(),
                  # now choose Temperature or Rainfall
                  selectInput("type", 
-                             label = "Choose Rainfall or temperature",
-                             choices = c("Rainfall", "Temperature"),
-                             selected = "Rainfall"),
+                             label = "Choose Rainfall or min/max temperature",
+                             choices = c("rain", "min_temp", "max_temp"),
+                             selected = "max_temp"),
                  br(),
+                 uiOutput('choice'),
                  # now choose the time period
                  br(),
                  dateRangeInput('dateRange',
                                 label = 'Date range input: yyyy-mm-dd',
                                 start = Sys.Date() - 2, end = Sys.Date() + 2
                  ),
+                 
                  submitButton("Submit")
                  ),
     mainPanel(h3("Data and analysis"),
+              
               textOutput("testoutput1"),
             #  textOutput("testoutput2"),
                 

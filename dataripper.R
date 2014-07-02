@@ -27,18 +27,22 @@ bomDailyObs <- function (siteNumber, observation = "temp",...)
   if (observation == "rain") {
     theurl <- gsub("DATATYPE", "136", theurl)
     dataCode <- 136
+    filecode <- "IDCJAC0009"
   }
   if (observation == "max_temp") {
     theurl <- gsub("DATATYPE", "122", theurl)
     dataCode <- 122
+    filecode <- "IDCJAC0010"
   }
   if (observation == "min_temp") {
     theurl <- gsub("DATATYPE", "123", theurl)
     dataCode <- 123
+    filecode <- "IDCJAC0011"
   }
   if (observation == "solar") {
     theurl <- gsub("DATATYPE", "193", theurl)
     dataCode <- 193
+    fielcode <- "IDCJAC0016"
   }
   raw <- getURLContent(theurl,...)
   if (grepl("Unfortunately there are no data available", raw[[1]])) {
@@ -59,7 +63,7 @@ bomDailyObs <- function (siteNumber, observation = "temp",...)
   ret = bdown(theurl, tmpfile)
   unzip(tmpfile, exdir = td)
     
-  fileName <- paste("IDCJAC0009_0", siteNumber,"_1800_Data.csv",sep="") 
+  fileName <- paste(filecode,"_0", siteNumber,"_1800_Data.csv",sep="") 
   dat <- as.data.frame(read.csv(paste(td, fileName, sep = "\\"), as.is = TRUE))
 #  unlink(td, recursive = T)
 #  unlink(tmpfile, recursive = T)
