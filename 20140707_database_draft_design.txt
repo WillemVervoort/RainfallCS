@@ -1,0 +1,32 @@
+# database design RainfallCS project
+Using MySQL because this is what AERDM has, will make it easier to transfer.
+
+Main table
+columns: 
+Station ID analysed (VARCHAR(20))
+date analysis performed (date)
+time analysis performed (time)
+start_date period analysis (date)
+end_date period analysis (date)
+comment (VARCHAR(100)) 
+
+Stats Regression Result table (Regr_Stats_result)
+id (linked to Main table)
+RMSE (all Numeric)
+r.sq
+p-value
+bias
+stat1  (extra fields, maybe used later)
+stat2
+stat3
+stat4
+stat5
+
+Linear Regression Result table
+Intercept (Numeric)
+se_int  (Numeric)
+p_value_int (Numeric)
+slope (Numeric)
+se_slope (Numeric)
+p_value_slope (Numeric)
+ 

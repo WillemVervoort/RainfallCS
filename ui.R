@@ -27,7 +27,7 @@ shinyUI(fluidPage(
                                 start = Sys.Date() - 2, end = Sys.Date() + 2
                  ),
                  
-                 submitButton("Submit")
+                 actionButton("goButton", "Go!")
                  ),
     mainPanel(h3("Data and analysis"),
               

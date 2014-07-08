@@ -1,4 +1,5 @@
 library(shiny)
+library(RODBC)
 
 # here code that runs when app is launched
 # This is some old code just to get the BOM stations into a Rdata file
@@ -40,7 +41,8 @@ shinyServer(function(input, output) {
   })
 
 StationInput <- reactive({
-      input$Submit
+      if (input$goButton == 0)
+      return()
       # use dataripper to download data from BOM station, now fudged to get 1 station
       data <- bomDailyObs(input$choice,observation=input$type)
       return(data)
@@ -69,7 +71,8 @@ StationInput <- reactive({
   #
   # and create a plot
   output$plot <- renderPlot({
-    input$Submit 
+    if (input$goButton == 0)
+      return() 
     # grab the data from StationInput
     #data.plot <- StationInput()
     # only run when submit is pushed??
@@ -82,10 +85,14 @@ StationInput <- reactive({
          xlab= "Date", ylab=lab)
     })
   output$testoutput1 <- renderPrint({
-    input$Submit
+    if (input$goButton == 0)
+      return()
     # this is just a test to see if everything works
     input$choice
   })
+
+# Now need to run the regression and create the output
+# store output into a database
   #output$testoutput1 <- renderText(paste("station selected =",as.character(TypeInput)))
   # on a second tab, extract the database info, summarise and plot
   
