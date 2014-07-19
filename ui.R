@@ -22,15 +22,17 @@ shinyUI(fluidPage(
                  uiOutput('choice'),
                  # now choose the time period
                  br(),
-                 dateRangeInput('dateRange',
+                 dateRangeInput("dateRange",
                                 label = 'Date range input: yyyy-mm-dd',
-                                start = Sys.Date() - 2, end = Sys.Date() + 2
+                                start = "1850-01-01", end =Sys.Date()
                  ),
                  
                  actionButton("goButton", "Go!")
                  ),
     mainPanel(h3("Data and analysis"),
               
+              textOutput("dateMsg"),
+              br(),
               textOutput("testoutput1"),
             #  textOutput("testoutput2"),
                 

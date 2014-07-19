@@ -1,6 +1,17 @@
 # database design RainfallCS project
 Using MySQL because this is what AERDM has, will make it easier to transfer.
 
+Steps I took to get this installed and running:
+1. Installed MySQL Community server 5.6 from the Oracle website
+	Also installed the MySQL OBDC connecter
+2. Followed the MySQL manual to create a database
+3. Created a "dummy" user with access to the database following the manual on the web:
+http://dev.mysql.com/doc/refman/5.6/en/creating-database.html
+
+4. Followed instructions from web search on how to connect RODBC to MySQL database
+http://www.joyofdata.de/blog/make-r-talk-to-mysql-on-windows/
+
+Database structure
 Main table
 columns: 
 Station ID analysed (VARCHAR(20))
