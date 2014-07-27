@@ -33,6 +33,7 @@ shinyUI(fluidPage(
               
               textOutput("dateMsg"),
               br(),
+              p("The results of the regression analysis are:"),
               textOutput("testoutput1"),
             #  textOutput("testoutput2"),
                 

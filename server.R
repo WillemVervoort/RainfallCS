@@ -16,6 +16,27 @@ load("stations.Rdata")
 # This is adaption of Jason Lessels' bomDailyDataripper
 source("dataripper.r")
 
+plot.fun <- function(Dates = DateInput(),
+                     Data=StationInput(),
+                     d.type=input$type) {
+  
+  # define labels
+  if (d.type=="rain") lab <- "Rainfall"; plot.t <- "h"
+  if (d.type=="min_temp") lab <- "Minimum Temperature"; plot.t <- "l"
+  if (d.type=="max_temp") lab <- "Maximum Temperature"; plot.t <- "l"
+  
+  # find begin and end dates from info
+  time1 <- match(Dates$Startdate,Data$Date)
+  time2 <- match(Dates$Enddate,Data$Date)
+  
+  
+  # make the plot
+  plot(Data$Date[time1:time2],
+       Data[time1:time2,6],
+       type=plot.t,col="blue",
+       xlab= "Date", ylab=lab)
+  lines(Data$Date[time1:time2],Dates$lm.line, col="red",lty=2,lwd=3)
+}
 # This is the start of the server part
 # this gives the input and output
 shinyServer(function(input, output) {
@@ -55,22 +76,45 @@ DateInput <- reactive({
    # this needs to read the dates and store them somewhere
    begin <- input$dateRange[1]
    end <- input$dateRange[2]
-   
+   isolate(
    if (begin >= min(StationInput()$Date)) {
      dates$Startdate <- begin
      dates$StartMsg <- paste("data analysis will start from",begin)
    } else {
      dates$Startdate <- min(StationInput()$Date)
      dates$StartMsg <- paste("the data only starts at", min(StationInput()$Date))
-   }
+   })
    
+   isolate(
    if (end <= max(StationInput()$Date)) {
      dates$Enddate <- end
      dates$EndMsg <- paste("and the data ends at",end)
    } else {
      dates$Enddate <- max(StationInput()$Date)
      dates$EndMsg <- paste("and the data only runs till", max(StationInput()$Date))
-   }
+   })
+   # define the begin and end rows to plot
+   temp <- match(dates$Startdate,StationInput()$Date)
+   temp2 <- match(dates$Enddate,StationInput()$Date)
+   
+   
+   # define the regression data frame
+   df <- data.frame(time=1:nrow(StationInput()[temp:temp2,]), 
+                    response=StationInput()[temp:temp2,6])
+   # run the regression (start simple with just linear)
+   lm.mod <- lm(response~time,df)
+   
+   #bad <-   
+   # predict the regression line
+   lm.line <- predict(lm.mod,
+            new.data=data.frame(time=1:nrow(StationInput()[temp:temp2,]),
+                                          response=rep(0,nrow(df))))
+  # dates$lm.line <- NA
+   dates$lm.line[as.numeric(names(lm.line))] <- lm.line
+   dates$lm.mod <- lm.mod
+  # in here we need to write the output of the regression to the database
+  
+  
    return(dates)
  })  
 
@@ -90,32 +134,13 @@ DateInput <- reactive({
     # grab the data from StationInput
     #data.plot <- StationInput()
     # only run when submit is pushed??
-    # define labels
-    if (input$type=="rain") lab <- "Rainfall"; plot.t <- "h"
-    if (input$type=="min_temp") lab <- "Minimum Temperature"; plot.t <- "l"
-    if (input$type=="max_temp") lab <- "Maximum Temperature"; plot.t <- "l"
-    # make the plot
-    # define the begin and end rows to plot
-    temp <- match(DateInput()$Startdate,StationInput()$Date)
-    temp2 <- match(DateInput()$Enddate,StationInput()$Date)
     
-    
-    # define the regression data frame
-    df <- data.frame(time=1:nrow(StationInput()[temp:temp2,]), 
-                     response=StationInput()[temp:temp2,6])
-    # run the regression (start simple with just linear)
-    lm.mod <- lm(response~time,df)
-    switch(lm.mod, "lm.mod" = lm.mod)
-    
-    # predict the regression line
-    lm.line <- predict(lm.mod)
-    # make the plot
-    plot(StationInput()$Date[temp:temp2],
-         StationInput()[temp:temp2,6],
-         type=plot.t,col="blue",
-         xlab= "Date", ylab=lab)
-    lines(StationInput()$Date[temp:temp2],lm.line)
+    plot.fun(Dates=DateInput(),
+                     Data=StationInput(),
+                     d.type=input$type)
+
     })
+
 
 output$dateMsg <- renderPrint({
   if (input$goButton == 0)
@@ -124,17 +149,21 @@ output$dateMsg <- renderPrint({
   isolate(cat(DateInput()$StartMsg,DateInput()$EndMsg, "\n"))
 })
 
+output$slope <- renderPrint({
+  if (input$goButton == 0) ""
+  cat("the slope of the regression line is",coef(DateInput()$lm.mod)[2],
+        " with a p-value of",summary(DateInput()$lm.mod)$coefficients[2,4])
+  ifelse(summary(DateInput()$lm.mod)$coefficients[2,4]>0.05,
+         "Statistically this means there is more than a 5% chance this slope is similar to 0",
+         "Statistically this means there is less than a 5% chance this slope is similar to 0")
+})
 
  output$testoutput1 <- renderPrint({
-     if (input$goButton == 0)
-       return()
+     if (input$goButton == 0) ""
      # this is just a test to see if everything works
-     summary(lm.mod)
+     
+     summary(DateInput()$lm.mod)
   })
 
-# Now need to run the regression and create the output
-# store output into a database
-  #output$testoutput1 <- renderText(paste("station selected =",as.character(TypeInput)))
-  # on a second tab, extract the database info, summarise and plot
   
  })
