@@ -150,20 +150,35 @@ output$dateMsg <- renderPrint({
 })
 
 output$slope <- renderPrint({
-  if (input$goButton == 0) ""
-  cat("the slope of the regression line is",coef(DateInput()$lm.mod)[2],
-        " with a p-value of",summary(DateInput()$lm.mod)$coefficients[2,4])
-  ifelse(summary(DateInput()$lm.mod)$coefficients[2,4]>0.05,
-         "Statistically this means there is more than a 5% chance this slope is similar to 0",
-         "Statistically this means there is less than a 5% chance this slope is similar to 0")
+  if (input$goButton == 0) return("")
+  cat("The slope of the regression line is",coef(DateInput()$lm.mod)[2],
+        " with a p-value of",summary(DateInput()$lm.mod)$coefficients[2,4],".")
+  cat(ifelse(summary(DateInput()$lm.mod)$coefficients[2,4]>0.05,
+         " Statistically this means there is more than a 5% chance that this slope is similar to 0, or we are not confident there is actually a trend.",
+         " Statistically this means there is less than a 5% chance that this slope is similar to 0, meaning we are quite confident there is a trend."))
 })
 
- output$testoutput1 <- renderPrint({
-     if (input$goButton == 0) ""
-     # this is just a test to see if everything works
-     
-     summary(DateInput()$lm.mod)
-  })
+output$fitResults <- renderPrint({
+  if (input$goButton == 0) return("")
+  cat("The adj. r_squared of the line fit is",summary(DateInput()$lm.mod)$adj.r.squared,
+      " with an average residual value (RMSE) of",summary(DateInput()$lm.mod)$sigma,
+      ifelse(input$type=="rain","mm","degrees C"),"."
+      ," In general terms, the closer the adj. r-squared is to 1 means a better fit of the model to the data.")
+})
+
+output$CautionComment <- renderPrint({
+  if (input$goButton == 0) return("")
+  cat("This analysis makes several assumptions, the most important one: that the trend in the data is linear! 
+      Also, we are analysing the real data here, more common is to analyse the anomalies")
+})
+
+
+#  output$testoutput1 <- renderPrint({
+#      if (input$goButton == 0) ""
+#      # this is just a test to see if everything works
+#      
+#      summary(DateInput()$lm.mod)
+#   })
 
   
  })

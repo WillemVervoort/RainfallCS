@@ -34,7 +34,12 @@ shinyUI(fluidPage(
               textOutput("dateMsg"),
               br(),
               p("The results of the regression analysis are:"),
-              textOutput("testoutput1"),
+              textOutput("slope"),
+              textOutput("fitResults"),
+              textOutput("CautionComment"),
+              
+                          
+              #textOutput("testoutput1"),
             #  textOutput("testoutput2"),
                 
               plotOutput("plot"),
