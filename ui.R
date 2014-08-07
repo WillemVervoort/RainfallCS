@@ -29,8 +29,9 @@ shinyUI(fluidPage(
                  
                  actionButton("goButton", "Go!")
                  ),
-    mainPanel(h3("Data and analysis"),
-              
+    mainPanel(
+      tabsetPanel(
+        tabPanel(h4("Data and analysis"),             
               textOutput("dateMsg"),
               br(),
               p("The results of the regression analysis are:"),
@@ -39,12 +40,15 @@ shinyUI(fluidPage(
               textOutput("CautionComment"),
               
                           
-              #textOutput("testoutput1"),
+             # textOutput("testoutput1"),
             #  textOutput("testoutput2"),
                 
               plotOutput("plot"),
-              "Comment:this app is going to allow people to analyse different temperature and rainfall timeseries")
-    
+              "Comment:this app is going to allow people to analyse different temperature and rainfall timeseries"
+        ),
+        tabPanel(h4("Summary"), "summary"), 
+        tabPanel(h4("Map"), "Map")      
   )
-  
+  )
+  )
 ))

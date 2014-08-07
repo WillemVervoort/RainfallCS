@@ -1,6 +1,18 @@
 library(shiny)
 library(RODBC)
 
+# connect to data source
+db <- odbcConnect("testwillem", uid="rver4657", pwd="7564revrMySQL")
+
+# # testing ODBC
+# # find the names of the available tables
+# sqlTables(db)
+# 
+# load the different tables into a data fram
+df_main <- sqlQuery(db, "select * from main_table")
+df_regr_results <- sqlQuery(db, "select * from regr_results")
+df_regr_stats <- sqlQuery(db, "select * from regr_stats")
+
 # here code that runs when app is launched
 # This is some old code just to get the BOM stations into a Rdata file
 # stations <- read.fwf("20140617_AllBOMstations.txt", 
@@ -39,7 +51,7 @@ plot.fun <- function(Dates = DateInput(),
 }
 # This is the start of the server part
 # this gives the input and output
-shinyServer(function(input, output) {
+shinyServer(function(input, output, session) {
   
   # here code that runs every time the app is visited
 
@@ -54,7 +66,7 @@ shinyServer(function(input, output) {
                                  ignore.case=T),c("Site","Site_name","STA")]
      # This selects at least a station in the right state, but what to do if I have more than 1 station?
       name$name2 <- name$name[grep(input$state,name$name$STA),]
-    return(name$name2$Site)
+   # return(name$name2$Site)
   })
 
   output$choice <- renderUI({
@@ -103,6 +115,11 @@ DateInput <- reactive({
                     response=StationInput()[temp:temp2,6])
    # run the regression (start simple with just linear)
    lm.mod <- lm(response~time,df)
+   
+   # insert results into tables from database
+   splitTime <- strsplit(as.character(Sys.time())," ")
+   df_main[(nrow(df_main)+1),] <- c(input$choice,splitTime[[1]][1],splitTime[[1]][2],
+                    dates$Startdate,dates$Enddate,"testing")
    
    #bad <-   
    # predict the regression line
@@ -154,8 +171,12 @@ output$slope <- renderPrint({
   cat("The slope of the regression line is",coef(DateInput()$lm.mod)[2],
         " with a p-value of",summary(DateInput()$lm.mod)$coefficients[2,4],".")
   cat(ifelse(summary(DateInput()$lm.mod)$coefficients[2,4]>0.05,
-         " Statistically this means there is more than a 5% chance that this slope is similar to 0, or we are not confident there is actually a trend.",
-         " Statistically this means there is less than a 5% chance that this slope is similar to 0, meaning we are quite confident there is a trend."))
+         " Statistically this means there is more than a 5% chance that this slope is similar to 0, 
+         or we are not confident there is actually a trend.",
+         paste(" Statistically this means there is less than a 5% chance that this slope is similar to 0, 
+         meaning we are quite confident there is a",
+         ifelse(coef(DateInput()$lm.mod)[2]>=0,"positive","negative"),
+         "trend.")))
 })
 
 output$fitResults <- renderPrint({
@@ -173,12 +194,21 @@ output$CautionComment <- renderPrint({
 })
 
 
-#  output$testoutput1 <- renderPrint({
-#      if (input$goButton == 0) ""
-#      # this is just a test to see if everything works
-#      
-#      summary(DateInput()$lm.mod)
-#   })
+  output$testoutput1 <- renderPrint({
+     if (input$goButton == 0) ""
+      # this is just a test to see if everything works
+            input$choice
+   })
 
-  
+on.exit(odbcClose(db))
+#  session$onSessionEnded(function() { 
+   # q("no") 
+#    odbcClose(db)
+#  })
+
  })
+
+# write tables back to database
+
+# close the connection
+#
