@@ -9,7 +9,8 @@ db <- odbcConnect("testwillem", uid="rver4657", pwd="7564revrMySQL")
 # sqlTables(db)
 # 
 # load the different tables into a data fram
-df_main <- sqlQuery(db, "select * from main_table")
+df_main <- sqlQuery(db, "select * from main_table",as.is = c(1,2,6,7),
+                    stringsAsFactors=F)
 df_regr_results <- sqlQuery(db, "select * from regr_results")
 df_regr_stats <- sqlQuery(db, "select * from regr_stats")
 
@@ -40,7 +41,7 @@ plot.fun <- function(Dates = DateInput(),
   # find begin and end dates from info
   time1 <- match(Dates$Startdate,Data$Date)
   time2 <- match(Dates$Enddate,Data$Date)
-  
+
   
   # make the plot
   plot(Data$Date[time1:time2],
@@ -71,7 +72,7 @@ shinyServer(function(input, output, session) {
 
   output$choice <- renderUI({
       selectInput('choice', label='Choose a Station',
-                  selected=StationOut()[1], StationOut())
+                  selected=StationOut()$Site[1], StationOut()$Site)
   })
 
 StationInput <- reactive({
@@ -119,7 +120,20 @@ DateInput <- reactive({
    # insert results into tables from database
    splitTime <- strsplit(as.character(Sys.time())," ")
    df_main[(nrow(df_main)+1),] <- c(input$choice,splitTime[[1]][1],splitTime[[1]][2],
-                    dates$Startdate,dates$Enddate,"testing")
+                    dates$Startdate,dates$Enddate,"testing", input$type)
+#    # coefficients and stats
+    mod.res <-  summary(lm.mod)$coefficients   
+    df_regr_results[(nrow(df_regr_results)+1),] <- 
+         c(input$choice,mod.res[1,1],mod.res[1,2],mod.res[1,4],mod.res[2,1],
+           mod.res[2,2],mod.res[2,4])
+    # model statistics and summary
+    mod.sum <- summary(lm.mod)
+    fstat<-mod.sum$fstatistic
+    pv <-   pf(fstat[1], fstat[2], fstat[3], lower.tail=FALSE) 
+    bias <- sum(residuals(lm.mod),na.rm=T)
+    df_regr_stats <- c(input$choice,mod.sum$sigma, mod.sum$adj.r.squared, pv, 
+                       bias, mod.sum$r.squared, fstat[1], fstat[2], 
+                       fstat[3], NA, "test")
    
    #bad <-   
    # predict the regression line
@@ -129,11 +143,10 @@ DateInput <- reactive({
   # dates$lm.line <- NA
    dates$lm.line[as.numeric(names(lm.line))] <- lm.line
    dates$lm.mod <- lm.mod
-  # in here we need to write the output of the regression to the database
-  
-  
+   # in here we need to write the output of the regression to the database
    return(dates)
  })  
+
 
  ####################################################################
   # Now run the regression using lm and store the data into a database
@@ -197,18 +210,24 @@ output$CautionComment <- renderPrint({
   output$testoutput1 <- renderPrint({
      if (input$goButton == 0) ""
       # this is just a test to see if everything works
-            input$choice
+            str(StationInput())
    })
 
-on.exit(odbcClose(db))
-#  session$onSessionEnded(function() { 
-   # q("no") 
-#    odbcClose(db)
-#  })
 
  })
 
-# write tables back to database
+on.exit({
+  # first delete the tables (see http://stackoverflow.com/questions/23913616/rodbc-sqlsave-table-creation-problems)
+  try(sqlDrop(db, sqtable="main_table", errors = F), silent=T)
+  try(sqlDrop(db, sqtable="regr_results", errors = F), silent=T)
+  try(sqlDrop(db, sqtable="regr_stats", errors = F), silent=T)
+  # write data base tables back
+  sqlSave(db, df_main, tablename="main_table", rownames=FALSE,safer=F)
+  sqlSave(db, df_regr_results, tablename="regr_results", rownames=FALSE)
+  sqlSave(db, df_regr_stats, tablename="regr_stats", rownames=FALSE)
+  
+  # close the connection
+  odbcClose(db)
+  })
 
-# close the connection
-#
+

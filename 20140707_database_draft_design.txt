@@ -14,15 +14,17 @@ http://www.joyofdata.de/blog/make-r-talk-to-mysql-on-windows/
 Database structure
 Main table
 columns: 
-Station ID analysed (VARCHAR(20))
+(Table name is "main_table")
+station_ID analysed (VARCHAR(20))
+data_type (VARCHAR(10)) this would be max_temp, min_temp, rain
 date analysis performed (date)
 time analysis performed (time)
 start_date period analysis (date)
 end_date period analysis (date)
 comment (VARCHAR(100)) 
 
-Stats Regression Result table (Regr_Stats_result)
-id (linked to Main table)
+Stats Regression Result table (Table name is "regr_stats")
+station_ID (linked to Main table)
 RMSE (all Numeric)
 r.sq
 p-value
@@ -34,6 +36,8 @@ stat4
 stat5
 
 Linear Regression Result table
+(Table name is "regr_results")
+station_ID
 Intercept (Numeric)
 se_int  (Numeric)
 p_value_int (Numeric)

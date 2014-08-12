@@ -40,7 +40,7 @@ shinyUI(fluidPage(
               textOutput("CautionComment"),
               
                           
-             # textOutput("testoutput1"),
+              textOutput("testoutput1"),
             #  textOutput("testoutput2"),
                 
               plotOutput("plot"),
