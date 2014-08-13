@@ -39,8 +39,8 @@ plot.fun <- function(Dates = DateInput(),
   if (d.type=="max_temp") lab <- "Maximum Temperature"; plot.t <- "l"
   
   # find begin and end dates from info
-  time1 <- match(Dates$Startdate,Data$Date)
-  time2 <- match(Dates$Enddate,Data$Date)
+  time1 <- match(as.Date(Dates$Startdate),as.Date(Data$Date))
+  time2 <- match(as.Date(Dates$Enddate),as.Date(Data$Date))
 
   
   # make the plot
@@ -78,7 +78,7 @@ shinyServer(function(input, output, session) {
 StationInput <- reactive({
       if (input$goButton == 0) 
         return()
-      # use dataripper to download data from BOM station, now fudged to get 1 station
+      # use dataripper to download data from BOM station
       data <- bomDailyObs(input$choice,observation=input$type)
       return(data)
       })
@@ -94,7 +94,7 @@ DateInput <- reactive({
      dates$Startdate <- begin
      dates$StartMsg <- paste("data analysis will start from",begin)
    } else {
-     dates$Startdate <- min(StationInput()$Date)
+     dates$Startdate <- min(StationInput()$Date) #data$Date)
      dates$StartMsg <- paste("the data only starts at", min(StationInput()$Date))
    })
    
@@ -103,12 +103,12 @@ DateInput <- reactive({
      dates$Enddate <- end
      dates$EndMsg <- paste("and the data ends at",end)
    } else {
-     dates$Enddate <- max(StationInput()$Date)
+     dates$Enddate <- max(StationInput()$Date) #max(data$Date)
      dates$EndMsg <- paste("and the data only runs till", max(StationInput()$Date))
    })
    # define the begin and end rows to plot
-   temp <- match(dates$Startdate,StationInput()$Date)
-   temp2 <- match(dates$Enddate,StationInput()$Date)
+   temp <- match(as.Date(dates$Startdate),as.Date(StationInput()$Date))
+   temp2 <- match(as.Date(dates$Enddate),as.Date(StationInput()$Date))
    
    
    # define the regression data frame
@@ -210,7 +210,8 @@ output$CautionComment <- renderPrint({
   output$testoutput1 <- renderPrint({
      if (input$goButton == 0) ""
       # this is just a test to see if everything works
-            str(StationInput())
+        "testing"    
+      #DateInput()$lm.line[1:100]
    })
 
 

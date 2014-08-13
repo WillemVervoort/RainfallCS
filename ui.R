@@ -19,7 +19,7 @@ shinyUI(fluidPage(
                              choices = c("rain", "min_temp", "max_temp"),
                              selected = "max_temp"),
                  br(),
-                 uiOutput('choice'),
+                 uiOutput("choice"),
                  # now choose the time period
                  br(),
                  dateRangeInput("dateRange",
