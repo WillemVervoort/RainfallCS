@@ -46,8 +46,10 @@ shinyUI(fluidPage(
               plotOutput("plot"),
               "Comment:this app is going to allow people to analyse different temperature and rainfall timeseries"
         ),
-        tabPanel(h4("Summary"), "summary"), 
-        tabPanel(h4("Map"), "Map")      
+        tabPanel(h4("Summary"), "summary",
+                 plotOutput("histogram")), 
+        tabPanel(h4("Map"), "Map",
+                 plotOutput("map"))      
   )
   )
   )

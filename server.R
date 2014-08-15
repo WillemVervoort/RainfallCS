@@ -1,18 +1,24 @@
 library(shiny)
 library(RODBC)
+library(oz)
+# for fancier plotting
+library(ggplot2)
 
-# connect to data source
-db <- odbcConnect("testwillem", uid="rver4657", pwd="7564revrMySQL")
+# read in ozdata
+oz.map <- read.csv("ozdata.csv")
 
-# # testing ODBC
-# # find the names of the available tables
-# sqlTables(db)
+# # connect to data source
+# db <- odbcConnect("testwillem", uid="rver4657", pwd="7564revrMySQL")
 # 
-# load the different tables into a data fram
-df_main <- sqlQuery(db, "select * from main_table",as.is = c(1,2,6,7),
-                    stringsAsFactors=F)
-df_regr_results <- sqlQuery(db, "select * from regr_results")
-df_regr_stats <- sqlQuery(db, "select * from regr_stats")
+# # # testing ODBC
+# # # find the names of the available tables
+# # sqlTables(db)
+# # 
+# # load the different tables into a data fram
+# df_main <- sqlQuery(db, "select * from main_table",as.is = c(1,2,6,7),
+#                     stringsAsFactors=F)
+# df_regr_results <- sqlQuery(db, "select * from regr_results")
+# df_regr_stats <- sqlQuery(db, "select * from regr_stats")
 
 # here code that runs when app is launched
 # This is some old code just to get the BOM stations into a Rdata file
@@ -42,14 +48,24 @@ plot.fun <- function(Dates = DateInput(),
   time1 <- match(as.Date(Dates$Startdate),as.Date(Data$Date))
   time2 <- match(as.Date(Dates$Enddate),as.Date(Data$Date))
 
-  
+  plot.df <- data.frame(Dates=Data$Date[time1:time2],
+                        values=Data[time1:time2,6])
   # make the plot
-  plot(Data$Date[time1:time2],
-       Data[time1:time2,6],
-       type=plot.t,col="blue",
-       xlab= "Date", ylab=lab)
-  lines(Data$Date[time1:time2],Dates$lm.line, col="red",lty=2,lwd=3)
+t.plot <-  ggplot(plot.df,aes(x=Dates,y=values)) +
+         geom_line(colour="blue") +
+        geom_smooth(method="lm", formula=y~x, colour="red",
+                                       linetype=2, size=2)
+#         geom_line(x = Data$Date[time1:time2],Dates$lm.line, colour="blue",
+#                   linetype=2, size=2)
+print(t.plot)
+#   plot(Data$Date[time1:time2],
+#        Data[time1:time2,6],
+#        type=plot.t,col="blue",
+#        xlab= "Date", ylab=lab)
+#   lines(Data$Date[time1:time2],Dates$lm.line, col="red",lty=2,lwd=3)
 }
+
+
 # This is the start of the server part
 # this gives the input and output
 shinyServer(function(input, output, session) {
@@ -79,7 +95,7 @@ StationInput <- reactive({
       if (input$goButton == 0) 
         return()
       # use dataripper to download data from BOM station
-      data <- bomDailyObs(input$choice,observation=input$type)
+      isolate(data <- bomDailyObs(input$choice,observation=input$type))
       return(data)
       })
   
@@ -98,14 +114,14 @@ DateInput <- reactive({
      dates$StartMsg <- paste("the data only starts at", min(StationInput()$Date))
    })
    
-   isolate(
+   isolate({
    if (end <= max(StationInput()$Date)) {
      dates$Enddate <- end
      dates$EndMsg <- paste("and the data ends at",end)
    } else {
      dates$Enddate <- max(StationInput()$Date) #max(data$Date)
      dates$EndMsg <- paste("and the data only runs till", max(StationInput()$Date))
-   })
+   }
    # define the begin and end rows to plot
    temp <- match(as.Date(dates$Startdate),as.Date(StationInput()$Date))
    temp2 <- match(as.Date(dates$Enddate),as.Date(StationInput()$Date))
@@ -119,30 +135,52 @@ DateInput <- reactive({
    
    # insert results into tables from database
    splitTime <- strsplit(as.character(Sys.time())," ")
-   df_main[(nrow(df_main)+1),] <- c(input$choice,splitTime[[1]][1],splitTime[[1]][2],
-                    dates$Startdate,dates$Enddate,"testing", input$type)
+   #df_main[(nrow(df_main)+1),] <- 
+     
+   line <- data.frame(station_id = input$choice,
+                    date_anal = splitTime[[1]][1],
+                    time_anal = splitTime[[1]][2],
+                    start_date = dates$Startdate,
+                    end_date = dates$Enddate,
+                    comment = "testing",
+                    data_type = input$type)
+   # append database
+   db <- odbcConnect("testwillem", uid="rver4657", pwd="7564revrMySQL")
+   try(sqlSave(db, line, tablename="main_table", 
+           rownames=FALSE, append=T))
+#   odbcClose(db)
 #    # coefficients and stats
     mod.res <-  summary(lm.mod)$coefficients   
-    df_regr_results[(nrow(df_regr_results)+1),] <- 
-         c(input$choice,mod.res[1,1],mod.res[1,2],mod.res[1,4],mod.res[2,1],
-           mod.res[2,2],mod.res[2,4])
-    # model statistics and summary
+    results <- data.frame(station_id = input$choice,intercept = mod.res[1,1],
+            se_int = mod.res[1,2], p_int = mod.res[1,4],
+            slope = mod.res[2,1], se_slope = mod.res[2,2],
+            p_slope = mod.res[2,4])
+  # append database
+  try(sqlSave(db, results, tablename="regr_results", 
+            rownames=FALSE, append=T))
+# model statistics and summary
     mod.sum <- summary(lm.mod)
     fstat<-mod.sum$fstatistic
     pv <-   pf(fstat[1], fstat[2], fstat[3], lower.tail=FALSE) 
     bias <- sum(residuals(lm.mod),na.rm=T)
-    df_regr_stats <- c(input$choice,mod.sum$sigma, mod.sum$adj.r.squared, pv, 
-                       bias, mod.sum$r.squared, fstat[1], fstat[2], 
-                       fstat[3], NA, "test")
-   
+    stats <- data.frame(station_id = input$choice, rmse = mod.sum$sigma, 
+                      r_sq = mod.sum$adj.r.squared, p_value = pv, 
+                      bias = bias, stat1 = mod.sum$r.squared, 
+                      stat2 = fstat[1], stat3 = fstat[2], 
+                      stat4 = fstat[3], stat5 = NA, comment = "test")
+    # append database
+    try(sqlSave(db, stats, tablename="regr_stats", 
+            rownames=FALSE, append=T))
+   odbcClose(db)
    #bad <-   
    # predict the regression line
    lm.line <- predict(lm.mod,
             new.data=data.frame(time=1:nrow(StationInput()[temp:temp2,]),
                                           response=rep(0,nrow(df))))
-  # dates$lm.line <- NA
+   dates$lm.line <- vector(length=nrow(df))
    dates$lm.line[as.numeric(names(lm.line))] <- lm.line
    dates$lm.mod <- lm.mod
+    }) # close isolate()
    # in here we need to write the output of the regression to the database
    return(dates)
  })  
@@ -164,13 +202,43 @@ DateInput <- reactive({
     # grab the data from StationInput
     #data.plot <- StationInput()
     # only run when submit is pushed??
-    
-    plot.fun(Dates=DateInput(),
+    isolate(plot.fun(Dates=DateInput(),
                      Data=StationInput(),
                      d.type=input$type)
-
+    )
+    
     })
+output$map <- renderPlot({
+  if (input$goButton == 0)
+    return() 
+  # 
+  # only run when submit is pushed??
+  isolate({
+    p <- ggplot(subset(oz.map, border=="coast"), aes(long, lat, fill=state))
+    p <- p + geom_path()
+    p <- p + coord_equal()
+    p <- p + ggtitle("Coastline of Australia")
+    p
+  })
+})
 
+output$histogram <- renderPlot({
+  if (input$goButton == 0)
+    return() 
+  # 
+  # only run when submit is pushed??
+  isolate({
+    db <- odbcConnect("testwillem", uid="rver4657", pwd="7564revrMySQL")
+    dat <- sqlQuery(db,paste("select slope from regr_results"))
+    hist(dat$slope)
+    odbcClose(db)
+#     p <- ggplot(subset(oz.map, border=="coast"), aes(long, lat, fill=state))
+#     p <- p + geom_path()
+#     p <- p + coord_equal()
+#     p <- p + ggtitle("Coastline of Australia")
+#     p
+  })
+})
 
 output$dateMsg <- renderPrint({
   if (input$goButton == 0)
@@ -181,6 +249,7 @@ output$dateMsg <- renderPrint({
 
 output$slope <- renderPrint({
   if (input$goButton == 0) return("")
+  isolate({
   cat("The slope of the regression line is",coef(DateInput()$lm.mod)[2],
         " with a p-value of",summary(DateInput()$lm.mod)$coefficients[2,4],".")
   cat(ifelse(summary(DateInput()$lm.mod)$coefficients[2,4]>0.05,
@@ -190,20 +259,24 @@ output$slope <- renderPrint({
          meaning we are quite confident there is a",
          ifelse(coef(DateInput()$lm.mod)[2]>=0,"positive","negative"),
          "trend.")))
+  })
 })
 
 output$fitResults <- renderPrint({
   if (input$goButton == 0) return("")
-  cat("The adj. r_squared of the line fit is",summary(DateInput()$lm.mod)$adj.r.squared,
+  isolate(
+    cat("The adj. r_squared of the line fit is",summary(DateInput()$lm.mod)$adj.r.squared,
       " with an average residual value (RMSE) of",summary(DateInput()$lm.mod)$sigma,
       ifelse(input$type=="rain","mm","degrees C"),"."
       ," In general terms, the closer the adj. r-squared is to 1 means a better fit of the model to the data.")
+  )
 })
 
 output$CautionComment <- renderPrint({
   if (input$goButton == 0) return("")
-  cat("This analysis makes several assumptions, the most important one: that the trend in the data is linear! 
-      Also, we are analysing the real data here, more common is to analyse the anomalies")
+  isolate(
+      cat("This analysis makes several assumptions, the most important one: that the trend in the data is linear! 
+      Also, we are analysing the real data here, more common is to analyse the anomalies"))
 })
 
 
@@ -217,18 +290,18 @@ output$CautionComment <- renderPrint({
 
  })
 
-on.exit({
+#on.exit({
   # first delete the tables (see http://stackoverflow.com/questions/23913616/rodbc-sqlsave-table-creation-problems)
-  try(sqlDrop(db, sqtable="main_table", errors = F), silent=T)
-  try(sqlDrop(db, sqtable="regr_results", errors = F), silent=T)
-  try(sqlDrop(db, sqtable="regr_stats", errors = F), silent=T)
+#  try(sqlDrop(db, sqtable="main_table", errors = F), silent=T)
+#  try(sqlDrop(db, sqtable="regr_results", errors = F), silent=T)
+#  try(sqlDrop(db, sqtable="regr_stats", errors = F), silent=T)
   # write data base tables back
-  sqlSave(db, df_main, tablename="main_table", rownames=FALSE,safer=F)
-  sqlSave(db, df_regr_results, tablename="regr_results", rownames=FALSE)
-  sqlSave(db, df_regr_stats, tablename="regr_stats", rownames=FALSE)
+#  sqlSave(db, df_main, tablename="main_table", rownames=FALSE,safer=F)
+#  sqlSave(db, df_regr_results, tablename="regr_results", rownames=FALSE)
+#  sqlSave(db, df_regr_stats, tablename="regr_stats", rownames=FALSE)
   
   # close the connection
-  odbcClose(db)
-  })
+  
+ # })
 
 
