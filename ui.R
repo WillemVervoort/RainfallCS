@@ -30,25 +30,30 @@ shinyUI(fluidPage(
                  actionButton("goButton", "Go!")
                  ),
     mainPanel(
-      tabsetPanel(
-        tabPanel(h4("Data and analysis"),             
+      tabsetPanel(id = "resultstabs",
+        tabPanel(title = h4("Data and analysis"), value = "data panel",             
               textOutput("dateMsg"),
               br(),
               p("The results of the regression analysis are:"),
               textOutput("slope"),
+              br(),
               textOutput("fitResults"),
+              br(),
+              plotOutput("plot"),
               textOutput("CautionComment"),
-              
-                          
+              br(),          
               textOutput("testoutput1"),
             #  textOutput("testoutput2"),
                 
-              plotOutput("plot"),
               "Comment:this app is going to allow people to analyse different temperature and rainfall timeseries"
         ),
-        tabPanel(h4("Summary"), "summary",
-                 plotOutput("histogram")), 
-        tabPanel(h4("Map"), "Map",
+        tabPanel(title = h4("Summary"), value = "summary",
+                 "Hit the", strong("GO"), "button to display the histograms.",
+                 "This pages displays the distribution of analysed slopes as histograms",
+                 br(),
+                 plotOutput("histogram", height = 700, width = 400)), 
+        tabPanel(title = h4("Map"), value = "Map",
+                 "This is going to be a map that displays all the analysed stations",
                  plotOutput("map"))      
   )
   )

@@ -46,7 +46,9 @@ bomDailyObs <- function (siteNumber, observation = "temp",...)
   }
   raw <- getURLContent(theurl,...)
   if (grepl("Unfortunately there are no data available", raw[[1]])) {
-    stop("Unfortunately there are no data available for the site number you have entered.\nThis may be because either the station number is invalid, or the station has\nnot observed the type of data requested.")
+    dat2 <- "Unfortunately there are no data available for the site number you have entered.\nThis may be because either the station number is invalid, or the station has\nnot observed the type of data requested."
+    return(dat2)
+    stop("no data available")
   }
   
   split1 <- strsplit(raw[[1]], "1 year of data</a></li><li><a")

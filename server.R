@@ -12,8 +12,20 @@ oz.map <- read.csv("ozdata.csv")
 # 
 # # # testing ODBC
 # # # find the names of the available tables
-# # sqlTables(db)
-# # 
+# sqlTables(db)
+# #
+## Drop the different tables
+# sqlDrop(db,"main_table")
+# sqlDrop(db,"regr_results")
+# sqlDrop(db,"regr_stats")
+# odbcClose(db)
+
+## Clear the different tables
+#  sqlClear(db,"main_table")
+#  sqlClear(db,"regr_results")
+#  sqlClear(db,"regr_stats")
+#  odbcClose(db)
+
 # # load the different tables into a data fram
 # df_main <- sqlQuery(db, "select * from main_table",as.is = c(1,2,6,7),
 #                     stringsAsFactors=F)
@@ -34,6 +46,8 @@ load("stations.Rdata")
 # Source the dataripper script to get the data from the BOM site
 # This is adaption of Jason Lessels' bomDailyDataripper
 source("dataripper.r")
+# # this is using the multiplot function from the R cookbook
+# source("multiplot.r")
 
 plot.fun <- function(Dates = DateInput(),
                      Data=StationInput(),
@@ -54,7 +68,10 @@ plot.fun <- function(Dates = DateInput(),
 t.plot <-  ggplot(plot.df,aes(x=Dates,y=values)) +
          geom_line(colour="blue") +
         geom_smooth(method="lm", formula=y~x, colour="red",
-                                       linetype=2, size=2)
+                                       linetype=2, size=2) +
+  xlab("Dates") + ylab(lab) + 
+  ggtitle(paste(Data$stationNumber[1], "for", as.Date(Dates$Startdate), "to",
+                as.Date(Dates$Enddate)))
 #         geom_line(x = Data$Date[time1:time2],Dates$lm.line, colour="blue",
 #                   linetype=2, size=2)
 print(t.plot)
@@ -65,6 +82,80 @@ print(t.plot)
 #   lines(Data$Date[time1:time2],Dates$lm.line, col="red",lty=2,lwd=3)
 }
 
+hist.fun <- function(dat) {
+#    plot(dat$slope)
+#     plot.df <- dat
+    th <- hist(dat$slope, plot=F)  
+    nplots <- 1
+    dr <- dat[dat$data_type=="rain",]
+    if (nrow(dr) > 0 ) {
+       rh <- hist(dr$slope, plot=F)  
+    nplots <- nplots + 1
+    }
+    dmt <- dat[dat$data_type=="max_temp",]
+    if (nrow(dmt) > 0 ) {
+      mth <- hist(dmt$slope, plot=F)  
+      nplots <- nplots + 1
+    }
+    dmit <- dat[dat$data_type=="min_temp",]
+    if (nrow(dmit) > 0 ) {
+      mith <- hist(dmit$slope, plot=F)  
+      nplots <- nplots + 1
+    }
+    # depending on number of plots split screen
+    par(mfrow=c(nplots,1))
+    plot(th, xlab ="significant slopes with p-value < 0.05", 
+         ylab = "slope or trend value",
+         main="slopes of all Analyses")
+    if (nrow(dr) > 0) {
+      plot(rh, xlab ="significant slopes with p-value < 0.05", 
+           ylab = "Rainfall slope (mm/day)",
+           main="slopes of Rainfall")
+    }
+    if (nrow(dmt) > 0) {
+      plot(mth, xlab ="significant slopes with p-value < 0.05", 
+           ylab = "Max T slope (deg C/day)",
+           main="slopes of Maximum Temperature")
+    }
+    if (nrow(dmit) > 0) {
+      plot(mith, xlab ="significant slopes with p-value < 0.05", 
+           ylab = "Min T slope (deg C/day)",
+           main="slopes of Minimum Temperature")
+    }
+    #    p1 <- ggplot(dat, aes(x=dat$slope)) +
+#        geom_histogram() +
+#      xlab("significant slopes with p-value < 0.05") +
+#      ylab("slope or trend value")
+#   p1
+#   dr <- dat[dat$data_type=="rain",]
+#   if (nrow(dr) > 0 ) {
+#     p2 <- ggplot(dr, aes(x=dr$slope)) +
+#       geom_histogram() +
+#       xlab("significant slopes with p-value < 0.05") +
+#       ylab("Rainfall slope (mm/day)")
+#   }
+#   dmt <- dat[dat$data_type=="max_temp",]
+#   if(nrow(dmt) > 0) {
+#     p3 <- ggplot(dmt, aes(x=dmt$slope)) +
+#       geom_histogram() +
+#       xlab("significant slopes with p-value < 0.05") +
+#       ylab("Max Temperature slope (degrees C/day)")
+#   }
+#   dmit <- dat[dat$data_type=="min_temp",]
+#   if (nrow(dmit)>0) {
+#     p4 <- ggplot(dmit, aes(x=dmit$slope)) +
+#       geom_histogram() +
+#       xlab("significant slopes with p-value < 0.05") +
+#       ylab("Min Temperature slope (degrees C/day)")
+#  }
+#   if (exists("p2") & exists("p3") & exists("p4")) multiplot(p1,p2,p3,p4)
+#   if (exists("p2") & exists("p3") & !exists("p4")) multiplot(p1,p2,p3)
+#   if (exists("p2") & !exists("p4") & !exists("p3")) multiplot(p1,p2)
+#   if (!exists("p4") & !exists("p3") & !exists("p2")) p1
+#   if (!exists("p2") & exists("p3") & exists("p4")) multiplot(p1,p3,p4)
+#   if (!exists("p3") & exists("p2") & exists("p4")) multiplot(p1,p2,p4)
+  
+}
 
 # This is the start of the server part
 # this gives the input and output
@@ -76,6 +167,7 @@ shinyServer(function(input, output, session) {
   data <- reactiveValues()
   name <- reactiveValues()
   dates <- reactiveValues()
+#  dat <- reactiveValues()
 # find the station in the 
   StationOut <- reactive({
     # find the station name in the station data set, now includes finding the state
@@ -95,8 +187,10 @@ StationInput <- reactive({
       if (input$goButton == 0) 
         return()
       # use dataripper to download data from BOM station
-      isolate(data <- bomDailyObs(input$choice,observation=input$type))
-      return(data)
+      isolate(
+             data <- bomDailyObs(input$choice,observation=input$type))
+             
+       return(data)
       })
   
 DateInput <- reactive({
@@ -105,6 +199,8 @@ DateInput <- reactive({
    # this needs to read the dates and store them somewhere
    begin <- input$dateRange[1]
    end <- input$dateRange[2]
+   isolate(
+   if (is.character(StationInput())==T) {stop("no data available")})
    isolate(
    if (begin >= min(StationInput()$Date)) {
      dates$Startdate <- begin
@@ -125,6 +221,12 @@ DateInput <- reactive({
    # define the begin and end rows to plot
    temp <- match(as.Date(dates$Startdate),as.Date(StationInput()$Date))
    temp2 <- match(as.Date(dates$Enddate),as.Date(StationInput()$Date))
+
+   ####################################################################
+   # Now run the regression using lm and store the data into a database
+   # need to work out what database (huge? or just small)
+   # current thinking is: just make a database locally, move later
+   # Probably can use AERDM from the Uni and therefore use MySQL
    
    
    # define the regression data frame
@@ -140,8 +242,8 @@ DateInput <- reactive({
    line <- data.frame(station_id = input$choice,
                     date_anal = splitTime[[1]][1],
                     time_anal = splitTime[[1]][2],
-                    start_date = dates$Startdate,
-                    end_date = dates$Enddate,
+                    start_date = as.character(dates$Startdate),
+                    end_date = as.character(dates$Enddate),
                     comment = "testing",
                     data_type = input$type)
    # append database
@@ -154,7 +256,7 @@ DateInput <- reactive({
     results <- data.frame(station_id = input$choice,intercept = mod.res[1,1],
             se_int = mod.res[1,2], p_int = mod.res[1,4],
             slope = mod.res[2,1], se_slope = mod.res[2,2],
-            p_slope = mod.res[2,4])
+            p_slope = mod.res[2,4],data_type = input$type)
   # append database
   try(sqlSave(db, results, tablename="regr_results", 
             rownames=FALSE, append=T))
@@ -167,18 +269,19 @@ DateInput <- reactive({
                       r_sq = mod.sum$adj.r.squared, p_value = pv, 
                       bias = bias, stat1 = mod.sum$r.squared, 
                       stat2 = fstat[1], stat3 = fstat[2], 
-                      stat4 = fstat[3], stat5 = NA, comment = "test")
+                      stat4 = fstat[3], stat5 = NA, comment = "test",
+                      data_type=input$type)
     # append database
     try(sqlSave(db, stats, tablename="regr_stats", 
             rownames=FALSE, append=T))
-   odbcClose(db)
-   #bad <-   
+    
+    #bad <-   
    # predict the regression line
-   lm.line <- predict(lm.mod,
-            new.data=data.frame(time=1:nrow(StationInput()[temp:temp2,]),
-                                          response=rep(0,nrow(df))))
-   dates$lm.line <- vector(length=nrow(df))
-   dates$lm.line[as.numeric(names(lm.line))] <- lm.line
+#    lm.line <- predict(lm.mod,
+#             new.data=data.frame(time=1:nrow(StationInput()[temp:temp2,]),
+#                                           response=rep(0,nrow(df))))
+#    dates$lm.line <- vector(length=nrow(df))
+#    dates$lm.line[as.numeric(names(lm.line))] <- lm.line
    dates$lm.mod <- lm.mod
     }) # close isolate()
    # in here we need to write the output of the regression to the database
@@ -186,11 +289,8 @@ DateInput <- reactive({
  })  
 
 
- ####################################################################
-  # Now run the regression using lm and store the data into a database
-  # need to work out what database (huge? or just small)
-  # current thinking is: just make a database locally, move later
-  # Probably can use AERDM from the Uni and therefore use MySQL
+
+
   
   # ------------------------------------
   # Start of output creation
@@ -222,22 +322,25 @@ output$map <- renderPlot({
   })
 })
 
+extractData <- reactive({
+  if (input$goButton == 0)
+    return() 
+    db <- odbcConnect("testwillem", uid="rver4657", pwd="7564revrMySQL")
+    test <- sqlQuery(db,paste("SELECT slope, p_slope, data_type FROM regr_results"))
+  #    hist(dat$slope)
+    test <- test[test$p_slope < 0.05,]
+    odbcClose(db)
+  return(test)
+})
+
+
 output$histogram <- renderPlot({
   if (input$goButton == 0)
     return() 
-  # 
-  # only run when submit is pushed??
-  isolate({
-    db <- odbcConnect("testwillem", uid="rver4657", pwd="7564revrMySQL")
-    dat <- sqlQuery(db,paste("select slope from regr_results"))
-    hist(dat$slope)
-    odbcClose(db)
-#     p <- ggplot(subset(oz.map, border=="coast"), aes(long, lat, fill=state))
-#     p <- p + geom_path()
-#     p <- p + coord_equal()
-#     p <- p + ggtitle("Coastline of Australia")
-#     p
-  })
+ # updateTabsetPanel(session, selected="summary")
+  hist.fun(dat=as.data.frame(extractData()))
+  # plot the histograms
+  #isolate(hist.fun(dat = as.data.frame(extractData())))
 })
 
 output$dateMsg <- renderPrint({
@@ -283,7 +386,8 @@ output$CautionComment <- renderPrint({
   output$testoutput1 <- renderPrint({
      if (input$goButton == 0) ""
       # this is just a test to see if everything works
-        "testing"    
+      "for testing" 
+     #  str(extractData())    
       #DateInput()$lm.line[1:100]
    })
 
