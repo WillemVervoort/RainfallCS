@@ -11,7 +11,22 @@ http://dev.mysql.com/doc/refman/5.6/en/creating-database.html
 4. Followed instructions from web search on how to connect RODBC to MySQL database
 http://www.joyofdata.de/blog/make-r-talk-to-mysql-on-windows/
 
-Database structure
+See file tables.sql for the new structure of the database
+
+How to connect:
+shell> mysql -u user -p
+password:
+
+
+You can now also run the tables.sql to create the tables using:
+shell> mysql -u user -p < batch-file
+Enter password: ********
+
+Or you can run from the mysql prompt:
+mysql> source filename;
+
+
+Draft Database structure
 Main table
 columns: 
 (Table name is "main_table")
@@ -34,6 +49,8 @@ stat2
 stat3
 stat4
 stat5
+data_type (VARCHAR(10)) this would be max_temp, min_temp, rain
+comment (VARCHAR(100)) 
 
 Linear Regression Result table
 (Table name is "regr_results")
@@ -44,4 +61,5 @@ p_value_int (Numeric)
 slope (Numeric)
 se_slope (Numeric)
 p_value_slope (Numeric)
- 
+data_type (VARCHAR(10)) this would be max_temp, min_temp, rain
+comment (VARCHAR(100)) 

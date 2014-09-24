@@ -172,7 +172,7 @@ shinyServer(function(input, output, session) {
   StationOut <- reactive({
     # find the station name in the station data set, now includes finding the state
       name$name <- stations[grep(input$Station,stations$Site_name,
-                                 ignore.case=T),c("Site","Site_name","STA")]
+                                 ignore.case=T),c("Site","Site_name","STA","Lat","Lon")]
      # This selects at least a station in the right state, but what to do if I have more than 1 station?
       name$name2 <- name$name[grep(input$state,name$name$STA),]
    # return(name$name2$Site)
@@ -236,16 +236,22 @@ DateInput <- reactive({
    lm.mod <- lm(response~time,df)
    
    # insert results into tables from database
-   splitTime <- strsplit(as.character(Sys.time())," ")
+   #splitTime <- strsplit(as.character(Sys.time())," ")
    #df_main[(nrow(df_main)+1),] <- 
-     
+   
+   # Find latitude and longitude for each station
+   Lat <- StationOut()$Lat[grep(input$choice,StationOut()$Site)]
+   Lon <- StationOut()$Lon[grep(input$choice,StationOut()$Site)]
+   
+   # Create input line for database  
    line <- data.frame(station_id = input$choice,
-                    date_anal = splitTime[[1]][1],
-                    time_anal = splitTime[[1]][2],
+                    lat = Lat,
+                    lon = Lon,
+                    data_type = input$type,
+                    timestamp = Sys.time(),
                     start_date = as.character(dates$Startdate),
                     end_date = as.character(dates$Enddate),
-                    comment = "testing",
-                    data_type = input$type)
+                    comment = "testing")
    # append database
    db <- odbcConnect("testwillem", uid="rver4657", pwd="7564revrMySQL")
    try(sqlSave(db, line, tablename="main_table", 
@@ -254,9 +260,10 @@ DateInput <- reactive({
 #    # coefficients and stats
     mod.res <-  summary(lm.mod)$coefficients   
     results <- data.frame(station_id = input$choice,intercept = mod.res[1,1],
-            se_int = mod.res[1,2], p_int = mod.res[1,4],
+            se_int = mod.res[1,2], p_value_int = mod.res[1,4],
             slope = mod.res[2,1], se_slope = mod.res[2,2],
-            p_slope = mod.res[2,4],data_type = input$type)
+            p_value_slope = mod.res[2,4], comment="test",
+            data_type=input$type)
   # append database
   try(sqlSave(db, results, tablename="regr_results", 
             rownames=FALSE, append=T))
@@ -326,11 +333,17 @@ extractData <- reactive({
   if (input$goButton == 0)
     return() 
     db <- odbcConnect("testwillem", uid="rver4657", pwd="7564revrMySQL")
-    test <- sqlQuery(db,paste("SELECT slope, p_slope, data_type FROM regr_results"))
+    test <- sqlQuery(db,paste("SELECT station_id, slope, p_value_slope, data_type FROM regr_results"))
   #    hist(dat$slope)
-    test <- test[test$p_slope < 0.05,]
-    odbcClose(db)
-  return(test)
+    test <- test[test$p_value_slope < 0.05,]
+   st <- sqlQuery(db,paste("SELECT station_id, lat, lon FROM main_table"))
+  #    hist(dat$slope)
+  # close data base
+  odbcClose(db)
+  # select only significant slopes
+  test <- test[test$p_value_slope < 0.05,]
+  st.out <- cbind(st[st$station_id %in% test$station_id,],test[,2:4])
+  return(list(stations = st, sig.st = st.out))
 })
 
 
@@ -338,10 +351,26 @@ output$histogram <- renderPlot({
   if (input$goButton == 0)
     return() 
  # updateTabsetPanel(session, selected="summary")
-  hist.fun(dat=as.data.frame(extractData()))
+  hist.fun(dat=as.data.frame(extractData()$sig.st))
   # plot the histograms
   #isolate(hist.fun(dat = as.data.frame(extractData())))
 })
+
+# Make the map of Australia with analysed data
+output$map <- renderPlot({
+  if (input$goButton == 0)
+    return() 
+  # 
+  # only run when submit is pushed??
+  isolate({
+    p <- ggplot(subset(oz.map, border=="coast"), aes(long, lat, fill=state))
+    p <- p + geom_path()
+    p <- p + coord_equal()
+    p <- p + ggtitle("Coastline of Australia")
+    p
+  })
+})
+
 
 output$dateMsg <- renderPrint({
   if (input$goButton == 0)
