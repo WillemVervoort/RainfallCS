@@ -85,6 +85,7 @@ print(t.plot)
 hist.fun <- function(dat) {
 #    plot(dat$slope)
 #     plot.df <- dat
+  if (nrow(dat > 5)) {
     th <- hist(dat$slope, plot=F)  
     nplots <- 1
     dr <- dat[dat$data_type=="rain",]
@@ -154,7 +155,7 @@ hist.fun <- function(dat) {
 #   if (!exists("p4") & !exists("p3") & !exists("p2")) p1
 #   if (!exists("p2") & exists("p3") & exists("p4")) multiplot(p1,p3,p4)
 #   if (!exists("p3") & exists("p2") & exists("p4")) multiplot(p1,p2,p4)
-  
+  }
 }
 
 # This is the start of the server part
@@ -240,13 +241,13 @@ DateInput <- reactive({
    #df_main[(nrow(df_main)+1),] <- 
    
    # Find latitude and longitude for each station
-   Lat <- StationOut()$Lat[grep(input$choice,StationOut()$Site)]
-   Lon <- StationOut()$Lon[grep(input$choice,StationOut()$Site)]
+   Lat <- as.numeric(as.character(StationOut()$Lat[grep(input$choice,StationOut()$Site)]))
+   Lon <- as.numeric(as.character(StationOut()$Lon[grep(input$choice,StationOut()$Site)]))
    
    # Create input line for database  
-   line <- data.frame(station_id = input$choice,
-                    lat = Lat,
-                    lon = Lon,
+   line <- data.frame(station_ID = as.numeric(input$choice),
+                    Lat = Lat,
+                    Lon = Lon,
                     data_type = input$type,
                     timestamp = Sys.time(),
                     start_date = as.character(dates$Startdate),
@@ -255,15 +256,16 @@ DateInput <- reactive({
    # append database
    db <- odbcConnect("testwillem", uid="rver4657", pwd="7564revrMySQL")
    try(sqlSave(db, line, tablename="main_table", 
-           rownames=FALSE, append=T))
+           rownames=F,append=T,safer=F))
+  # sqlQuery(db,"DESCRIBE main_table")
 #   odbcClose(db)
 #    # coefficients and stats
     mod.res <-  summary(lm.mod)$coefficients   
-    results <- data.frame(station_id = input$choice,intercept = mod.res[1,1],
+    results <- data.frame(station_ID = input$choice,intercept = mod.res[1,1],
             se_int = mod.res[1,2], p_value_int = mod.res[1,4],
             slope = mod.res[2,1], se_slope = mod.res[2,2],
-            p_value_slope = mod.res[2,4], comment="test",
-            data_type=input$type)
+            p_value_slope = mod.res[2,4], data_type=input$type,
+            comment="test")
   # append database
   try(sqlSave(db, results, tablename="regr_results", 
             rownames=FALSE, append=T))
@@ -272,12 +274,12 @@ DateInput <- reactive({
     fstat<-mod.sum$fstatistic
     pv <-   pf(fstat[1], fstat[2], fstat[3], lower.tail=FALSE) 
     bias <- sum(residuals(lm.mod),na.rm=T)
-    stats <- data.frame(station_id = input$choice, rmse = mod.sum$sigma, 
+    stats <- data.frame(station_ID = input$choice, rmse = mod.sum$sigma, 
                       r_sq = mod.sum$adj.r.squared, p_value = pv, 
                       bias = bias, stat1 = mod.sum$r.squared, 
                       stat2 = fstat[1], stat3 = fstat[2], 
-                      stat4 = fstat[3], stat5 = NA, comment = "test",
-                      data_type=input$type)
+                      stat4 = fstat[3], stat5 = -9999, data_type=input$type,
+                      comment = "test")
     # append database
     try(sqlSave(db, stats, tablename="regr_stats", 
             rownames=FALSE, append=T))
@@ -416,7 +418,7 @@ output$CautionComment <- renderPrint({
      if (input$goButton == 0) ""
       # this is just a test to see if everything works
       "for testing" 
-     #  str(extractData())    
+       as.numeric(as.character(StationOut()$Lat))    
       #DateInput()$lm.line[1:100]
    })
 
