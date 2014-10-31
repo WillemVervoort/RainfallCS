@@ -1,21 +1,6 @@
 {
     "debugBreakpointsState" : {
         "breakpoints" : [
-            {
-                "editor_line_number" : 70,
-                "editor_state" : 2,
-                "function_name" : "bomDailyObs",
-                "function_steps" : "",
-                "id" : 0,
-                "is_package_breakpoint" : false,
-                "is_pending_debug_completion" : false,
-                "line_number" : 70,
-                "needs_updated_steps" : true,
-                "package_name" : "",
-                "path" : "~/GitHub/RainfallCS/RainfallCS/dataripper.R",
-                "state" : 2,
-                "type" : 0
-            }
         ]
     }
 }

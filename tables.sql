@@ -5,7 +5,7 @@ station_ID VARCHAR(20) PRIMARY KEY,
 Lat FLOAT(20,10),
 Lon FLOAT(20,10),
 data_type VARCHAR(10),
-timestamp TIMESTAMP,
+timestamp DATETIME,
 start_date DATE,
 end_date DATE,
 comment VARCHAR(100)
