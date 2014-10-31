@@ -285,9 +285,6 @@ DateInput <- reactive({
  })  
 
 
-
-
-  
   # ------------------------------------
   # Start of output creation
   #
@@ -367,13 +364,13 @@ output$rain_map <- renderPlot({
     p <- p + ggtitle("Australia")
 #    p
 #    p1 <- p +  geom_polygon(data=subset(oz.map,border="coast"), aes(fill=state))
-    p1 <- p + geom_point(data=as.data.frame(extractData()$st)[,data_type=="rain"],
+    p <- p + geom_point(data=as.data.frame(extractData()$st)[,data_type=="rain"],
                      aes(x=lon,y=lat),colour="black",size=3)
-    p1 <- p1 + geom_point(data=as.data.frame(extractData()$neg.st)[,data_type=="rain"],
+    p <- p + geom_point(data=as.data.frame(extractData()$neg.st)[,data_type=="rain"],
                       aes(x=lon,y=lat),colour="red",size=4)
-    p1 <- p1 + geom_point(data=as.data.frame(extractData()$pos.st)[,data_type=="rain"],
+    p <- p + geom_point(data=as.data.frame(extractData()$pos.st)[,data_type=="rain"],
                          aes(x=lon,y=lat),colour="blue",size=4)
-    print(p1)
+    print(p)
     })
 })
 
@@ -389,13 +386,13 @@ output$maxT_map <- renderPlot({
   p <- p + coord_equal()
   p <- p + ggtitle("Australia")
   #    p1 <- p +  geom_polygon(data=subset(oz.map,border="coast"), aes(fill=state))
-  p1 <- p + geom_point(data=as.data.frame(extractData()$st)[,data_type=="max_temp"],
+  p <- p + geom_point(data=as.data.frame(extractData()$st)[,data_type=="max_temp"],
                        aes(x=lon,y=lat),colour="black",size=3)
-  p1 <- p1 + geom_point(data=as.data.frame(extractData()$neg.st)[,data_type=="max_temp"],
+  p <- p + geom_point(data=as.data.frame(extractData()$neg.st)[,data_type=="max_temp"],
                        aes(x=lon,y=lat),colour="red",size=4)
-  p1 <- p1 + geom_point(data=as.data.frame(extractData()$pos.st)[,data_type=="max_temp"],
+  p <- p + geom_point(data=as.data.frame(extractData()$pos.st)[,data_type=="max_temp"],
                         aes(x=lon,y=lat),colour="blue",size=4)
-  print(p1)
+  print(p)
 })
 
 output$minT_map <- renderPlot({
@@ -409,13 +406,13 @@ output$minT_map <- renderPlot({
   p <- p + coord_equal()
   p <- p + ggtitle("Australia")
   #    p1 <- p +  geom_polygon(data=subset(oz.map,border="coast"), aes(fill=state))
-  p1 <- p + geom_point(data=as.data.frame(extractData()$st)[,data_type=="min_temp"],
+  p <- p + geom_point(data=as.data.frame(extractData()$st)[,data_type=="min_temp"],
                        aes(x=lon,y=lat),colour="black",size=3)
-  p1 <- p1 + geom_point(data=as.data.frame(extractData()$neg.st)[,data_type=="min_temp"],
+  p <- p + geom_point(data=as.data.frame(extractData()$neg.st)[,data_type=="min_temp"],
                         aes(x=lon,y=lat),colour="red",size=4)
-  p1 <- p1 + geom_point(data=as.data.frame(extractData()$pos.st)[,data_type=="min_temp"],
+  p <- p + geom_point(data=as.data.frame(extractData()$pos.st)[,data_type=="min_temp"],
                         aes(x=lon,y=lat),colour="blue",size=4)
-  print(p1)
+  print(p)
   })
 })
 

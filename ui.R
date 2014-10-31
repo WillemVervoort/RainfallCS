@@ -30,7 +30,7 @@ shinyUI(fluidPage(
                  actionButton("goButton", "Go!")
                  ),
     mainPanel(
-      tabsetPanel(
+      tabsetPanel(id = "resultstab",
         tabPanel(title = h4("Data and analysis"),             
               textOutput("dateMsg"),
               br(),
@@ -47,7 +47,7 @@ shinyUI(fluidPage(
                 
               "Comment:this app is going to allow people to analyse different temperature and rainfall timeseries"
         ),
-        tabPanel(title = h4("Rainfall"), 
+        tabPanel(title = h4("Rainfall"), value="rain", 
                  "Hit the", strong("GO"), "button to display maps and histograms.",
                  "This pages displays the distribution of analysed slopes for rainfall as maps and as histograms",
                  br(),
@@ -55,7 +55,7 @@ shinyUI(fluidPage(
                  "Red points are negative significant slopes, blue points are positive significant slopes, black points are non-significant slopes",
                  plotOutput("rain_histogram", height = 700, width = 400)
                  ), 
-        tabPanel(title = h4("Maximum T"),
+        tabPanel(title = h4("Maximum T"), value="maxT",
                  "Hit the", strong("GO"), "button to display maps and histograms.",
                  "This pages displays the distribution of analysed slopes for maximum temperature as maps and as histograms",
                  br(),
@@ -63,7 +63,7 @@ shinyUI(fluidPage(
                  "Red points are negative significant slopes, blue points are positive significant slopes, black points are non-significant slopes",
                  plotOutput("maxT_histogram", height = 700, width = 400)
                  ), 
-        tabPanel(title = h4("Minimum T"),
+        tabPanel(title = h4("Minimum T"), value="minT",
                "Hit the", strong("GO"), "button to display maps and histograms.",
                "This pages displays the distribution of analysed slopes for minimum temperature as maps and as histograms",
                br(),
