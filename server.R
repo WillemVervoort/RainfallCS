@@ -82,6 +82,23 @@ print(t.plot)
 #   lines(Data$Date[time1:time2],Dates$lm.line, col="red",lty=2,lwd=3)
 }
 
+plot.map <- function(Data_in, background=oz.map, dtype="rain") {
+  p1 <- ggplot(subset(background, border=="coast"), aes(long, lat))
+  p1 <- p1 + geom_path()
+  p1 <- p1 + coord_equal()
+  p1 <- p1 + ggtitle("Australia")
+  #    p
+  #    p1 <- p +  geom_polygon(data=subset(oz.map,border="coast"), aes(fill=state))
+  p1 <- p1 + geom_point(data=Data_in$st,
+                        aes(x=lon,y=lat),colour="black",size=3)
+  p1 <- p1 + geom_point(data=subset(Data_in$neg.st,Data_in$neg.st$data_type==dtype),
+                        aes(x=lon,y=lat),colour="red",size=4)
+  p1 <- p1 + geom_point(data=subset(Data_in$pos.st,Data_in$pos.st$data_type==dtype),
+                        aes(x=lon,y=lat),colour="blue",size=4)
+  print(p1)
+  
+}
+
 hist.fun <- function(dat, type="rain") {
 #    plot(dat$slope)
 #     plot.df <- dat
@@ -97,13 +114,13 @@ hist.fun <- function(dat, type="rain") {
     if (nrow(dmt) > 0 & type=="max_temp" ) {
       hist(dmt$slope, xlab ="Max T slope (deg C/day) with p-value < 0.05", 
            ylab = "fraction of all max T analyses",
-           main="slopes of Maximum Temperature"))  
+           main="slopes of Maximum Temperature")  
     }
     dmit <- dat[dat$data_type=="min_temp",]
     if (nrow(dmit) > 0 & type=="min_temp") {
       hist(dmit$slope, plot=T , xlab ="Min T slope (deg C/day) with p-value < 0.05", 
            ylab = "fraction of all min T analyses",
-           main="slopes of Minimum Temperature"))  
+           main="slopes of Minimum Temperature")  
     }
     #    p1 <- ggplot(dat, aes(x=dat$slope)) +
 #        geom_histogram() +
@@ -308,18 +325,16 @@ extractData <- reactive({
     db <- odbcConnect("testwillem", uid="rver4657", pwd="7564revrMySQL")
     test <- sqlQuery(db,paste("SELECT station_ID, slope, p_value_slope, data_type FROM regr_results"))
   #    hist(dat$slope)
-    test <- test[test$p_value_slope < 0.05,]
+  #  test <- test[test$p_value_slope < 0.05,]
    st <- sqlQuery(db,paste("SELECT station_ID, lat, lon FROM main_table"))
   #    hist(dat$slope)
+  st.all <- cbind(st,test)
   # close data base
   odbcClose(db)
   # select only significant slopes
-  test <- test[test$p_value_slope < 0.05,]
-  st.out <- cbind(st[st$station_ID %in% test$station_ID,],test[,2:4])
-  neg.slope <- test[test$slope < 0,]
-  st.neg <- cbind(st[st$station_ID %in% neg.slope$station_ID,],neg.slope[,2:4])
-  pos.slope <- test[test$slope > 0,]
-  st.neg <- cbind(st[st$station_ID %in% pos.slope$station_ID,],pos.slope[,2:4])
+  st.out <- st.all[st.all$p_value_slope < 0.05,]
+  st.neg <- st.out[st.out$slope < 0,]
+  st.pos <- st.out[st.out$slope > 0,]
   return(list(stations = st, sig.st = st.out, neg.st = st.neg, pos.st = st.pos))
 })
 
@@ -337,7 +352,7 @@ output$maxT_histogram <- renderPlot({
   if (input$goButton == 0)
     return() 
   # updateTabsetPanel(session, selected="summary")
-  hist.fun(dat=as.data.frame(extractData()$sig.st), type="max_temp")
+  hist.fun(dat=extractData()$sig.st, type="max_temp")
   # plot the histograms
   #isolate(hist.fun(dat = as.data.frame(extractData())))
 })
@@ -346,7 +361,7 @@ output$minT_histogram <- renderPlot({
   if (input$goButton == 0)
     return() 
   # updateTabsetPanel(session, selected="summary")
-  hist.fun(dat=as.data.frame(extractData()$sig.st), type="min_temp")
+  hist.fun(dat=extractData()$sig.st, type="min_temp")
   # plot the histograms
   #isolate(hist.fun(dat = as.data.frame(extractData())))
 })
@@ -354,72 +369,40 @@ output$minT_histogram <- renderPlot({
 # Make the map of Australia with analysed data
 output$rain_map <- renderPlot({
   if (input$goButton == 0)
-    return() 
+    return("") 
   # 
   # only run when submit is pushed??
     isolate({ 
-    p <- ggplot(subset(oz.map, border=="coast"), aes(long, lat))
-    p <- p + geom_path()
-    p <- p + coord_equal()
-    p <- p + ggtitle("Australia")
-#    p
-#    p1 <- p +  geom_polygon(data=subset(oz.map,border="coast"), aes(fill=state))
-    p <- p + geom_point(data=as.data.frame(extractData()$st)[,data_type=="rain"],
-                     aes(x=lon,y=lat),colour="black",size=3)
-    p <- p + geom_point(data=as.data.frame(extractData()$neg.st)[,data_type=="rain"],
-                      aes(x=lon,y=lat),colour="red",size=4)
-    p <- p + geom_point(data=as.data.frame(extractData()$pos.st)[,data_type=="rain"],
-                         aes(x=lon,y=lat),colour="blue",size=4)
-    print(p)
+      plot.map(Data_in = extractData(), dtype="rain" )
     })
 })
 
 # Make a map of Australia with pos and neg slopes
 output$maxT_map <- renderPlot({
   if (input$goButton == 0)
-    return() 
+    return("") 
   # 
   # only run when submit is pushed??
   
-  p <- ggplot(subset(oz.map, border=="coast"), aes(long, lat))
-  p <- p + geom_path()
-  p <- p + coord_equal()
-  p <- p + ggtitle("Australia")
-  #    p1 <- p +  geom_polygon(data=subset(oz.map,border="coast"), aes(fill=state))
-  p <- p + geom_point(data=as.data.frame(extractData()$st)[,data_type=="max_temp"],
-                       aes(x=lon,y=lat),colour="black",size=3)
-  p <- p + geom_point(data=as.data.frame(extractData()$neg.st)[,data_type=="max_temp"],
-                       aes(x=lon,y=lat),colour="red",size=4)
-  p <- p + geom_point(data=as.data.frame(extractData()$pos.st)[,data_type=="max_temp"],
-                        aes(x=lon,y=lat),colour="blue",size=4)
-  print(p)
+  isolate({ 
+    plot.map(Data_in = extractData(), dtype="max_temp" )
+  })
 })
 
 output$minT_map <- renderPlot({
   if (input$goButton == 0)
-    return() 
+    return("") 
   # 
   # only run when submit is pushed??
-  isolate({
-  p <- ggplot(subset(oz.map, border=="coast"), aes(long, lat))
-  p <- p + geom_path()
-  p <- p + coord_equal()
-  p <- p + ggtitle("Australia")
-  #    p1 <- p +  geom_polygon(data=subset(oz.map,border="coast"), aes(fill=state))
-  p <- p + geom_point(data=as.data.frame(extractData()$st)[,data_type=="min_temp"],
-                       aes(x=lon,y=lat),colour="black",size=3)
-  p <- p + geom_point(data=as.data.frame(extractData()$neg.st)[,data_type=="min_temp"],
-                        aes(x=lon,y=lat),colour="red",size=4)
-  p <- p + geom_point(data=as.data.frame(extractData()$pos.st)[,data_type=="min_temp"],
-                        aes(x=lon,y=lat),colour="blue",size=4)
-  print(p)
+  isolate({ 
+    plot.map(Data_in = extractData(), dtype="min_temp" )
   })
 })
 
 
 output$dateMsg <- renderPrint({
   if (input$goButton == 0)
-    return()
+    return("")
   # Display the dates that are available or chosen
   isolate(cat(DateInput()$StartMsg,DateInput()$EndMsg, "\n"))
 })

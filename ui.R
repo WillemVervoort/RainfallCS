@@ -52,24 +52,24 @@ shinyUI(fluidPage(
                  "This pages displays the distribution of analysed slopes for rainfall as maps and as histograms",
                  br(),
                  plotOutput("rain_map"),
-                 "Red points are negative significant slopes, blue points are positive significant slopes, black points are non-significant slopes",
-                 plotOutput("rain_histogram", height = 700, width = 400)
+                 "Red points are negative significant slopes, blue points are positive significant slopes, black points are non-significant slopes"#,
+                 #plotOutput("rain_histogram", height = 700, width = 400)
                  ), 
         tabPanel(title = h4("Maximum T"), value="maxT",
                  "Hit the", strong("GO"), "button to display maps and histograms.",
                  "This pages displays the distribution of analysed slopes for maximum temperature as maps and as histograms",
                  br(),
                  plotOutput("maxT_map"),
-                 "Red points are negative significant slopes, blue points are positive significant slopes, black points are non-significant slopes",
-                 plotOutput("maxT_histogram", height = 700, width = 400)
+                 "Red points are negative significant slopes, blue points are positive significant slopes, black points are non-significant slopes"#,
+                 #plotOutput("maxT_histogram", height = 700, width = 400)
                  ), 
         tabPanel(title = h4("Minimum T"), value="minT",
                "Hit the", strong("GO"), "button to display maps and histograms.",
                "This pages displays the distribution of analysed slopes for minimum temperature as maps and as histograms",
                br(),
                plotOutput("minT_map"),
-               "Red points are negative significant slopes, blue points are positive significant slopes, black points are non-significant slopes",      
-               plotOutput("maxT_histogram", height = 700, width = 400)
+               "Red points are negative significant slopes, blue points are positive significant slopes, black points are non-significant slopes"#,      
+               #plotOutput("maxT_histogram", height = 700, width = 400)
         ) 
       )
     )
