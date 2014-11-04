@@ -47,7 +47,7 @@ load("stations.Rdata")
 # This is adaption of Jason Lessels' bomDailyDataripper
 source("dataripper.r")
 # # this is using the multiplot function from the R cookbook
-# source("multiplot.r")
+source("helper.r")
 
 plot.fun <- function(Dates = DateInput(),
                      Data=StationInput(),
@@ -72,16 +72,10 @@ t.plot <-  ggplot(plot.df,aes(x=Dates,y=values)) +
   xlab("Dates") + ylab(lab) + 
   ggtitle(paste(Data$stationNumber[1], "for", as.Date(Dates$Startdate), "to",
                 as.Date(Dates$Enddate)))
-#         geom_line(x = Data$Date[time1:time2],Dates$lm.line, colour="blue",
-#                   linetype=2, size=2)
 print(t.plot)
-#   plot(Data$Date[time1:time2],
-#        Data[time1:time2,6],
-#        type=plot.t,col="blue",
-#        xlab= "Date", ylab=lab)
-#   lines(Data$Date[time1:time2],Dates$lm.line, col="red",lty=2,lwd=3)
 }
 
+# mapping plot function
 plot.map <- function(Data_in, background=oz.map, dtype="rain") {
   p1 <- ggplot(subset(background, border=="coast"), aes(long, lat))
   p1 <- p1 + geom_path()
@@ -89,73 +83,36 @@ plot.map <- function(Data_in, background=oz.map, dtype="rain") {
   p1 <- p1 + ggtitle("Australia")
   #    p
   #    p1 <- p +  geom_polygon(data=subset(oz.map,border="coast"), aes(fill=state))
-  p1 <- p1 + geom_point(data=Data_in$st,
+  p1 <- p1 + geom_point(data=subset(Data_in$stations,Data_in$stations$data_type==dtype),
                         aes(x=lon,y=lat),colour="black",size=3)
   p1 <- p1 + geom_point(data=subset(Data_in$neg.st,Data_in$neg.st$data_type==dtype),
                         aes(x=lon,y=lat),colour="red",size=4)
   p1 <- p1 + geom_point(data=subset(Data_in$pos.st,Data_in$pos.st$data_type==dtype),
                         aes(x=lon,y=lat),colour="blue",size=4)
-  print(p1)
+  return(p1)
+  
   
 }
 
-hist.fun <- function(dat, type="rain") {
-#    plot(dat$slope)
-#     plot.df <- dat
-  if (nrow(dat > 5)) {
 
-    dr <- dat[dat$data_type=="rain",]
-    if (nrow(dr) > 0 & type=="rain" ) {
-       hist(dr$slope, plot=T, xlab ="Rainfall slope (mm/day) with p-value < 0.05", 
-            ylab = "fraction of rainfall analyses",
-            main="slopes of Rainfall")  
-    }
-    dmt <- dat[dat$data_type=="max_temp",]
-    if (nrow(dmt) > 0 & type=="max_temp" ) {
-      hist(dmt$slope, xlab ="Max T slope (deg C/day) with p-value < 0.05", 
-           ylab = "fraction of all max T analyses",
-           main="slopes of Maximum Temperature")  
-    }
-    dmit <- dat[dat$data_type=="min_temp",]
-    if (nrow(dmit) > 0 & type=="min_temp") {
-      hist(dmit$slope, plot=T , xlab ="Min T slope (deg C/day) with p-value < 0.05", 
-           ylab = "fraction of all min T analyses",
-           main="slopes of Minimum Temperature")  
-    }
-    #    p1 <- ggplot(dat, aes(x=dat$slope)) +
-#        geom_histogram() +
-#      xlab("significant slopes with p-value < 0.05") +
-#      ylab("slope or trend value")
-#   p1
-#   dr <- dat[dat$data_type=="rain",]
-#   if (nrow(dr) > 0 ) {
-#     p2 <- ggplot(dr, aes(x=dr$slope)) +
-#       geom_histogram() +
-#       xlab("significant slopes with p-value < 0.05") +
-#       ylab("Rainfall slope (mm/day)")
-#   }
-#   dmt <- dat[dat$data_type=="max_temp",]
-#   if(nrow(dmt) > 0) {
-#     p3 <- ggplot(dmt, aes(x=dmt$slope)) +
-#       geom_histogram() +
-#       xlab("significant slopes with p-value < 0.05") +
-#       ylab("Max Temperature slope (degrees C/day)")
-#   }
-#   dmit <- dat[dat$data_type=="min_temp",]
-#   if (nrow(dmit)>0) {
-#     p4 <- ggplot(dmit, aes(x=dmit$slope)) +
-#       geom_histogram() +
-#       xlab("significant slopes with p-value < 0.05") +
-#       ylab("Min Temperature slope (degrees C/day)")
-#  }
-#   if (exists("p2") & exists("p3") & exists("p4")) multiplot(p1,p2,p3,p4)
-#   if (exists("p2") & exists("p3") & !exists("p4")) multiplot(p1,p2,p3)
-#   if (exists("p2") & !exists("p4") & !exists("p3")) multiplot(p1,p2)
-#   if (!exists("p4") & !exists("p3") & !exists("p2")) p1
-#   if (!exists("p2") & exists("p3") & exists("p4")) multiplot(p1,p3,p4)
-#   if (!exists("p3") & exists("p2") & exists("p4")) multiplot(p1,p2,p4)
-  }
+# histogram plotting function
+hist.fun <- function(Data_in, dtype="rain") {
+
+  label <- ifelse(dtype=="rain","Rainfall",
+                  ifelse(dtype=="max_temp","Maximum T","Mimimum T"))
+  units <- ifelse(dtype=="rain","mm/day",
+                  ifelse(dtype=="max_temp","degree C/day","degree C/day"))
+  
+  
+  p2 <- ggplot(subset(Data_in,Data_in$data_type==dtype),
+               aes(x=slope))
+  p2 <- p2 + geom_histogram() +
+    xlab(paste("Change in", units, "for significant",label,
+               "slopes with p-value < 0.05"))
+  return(p2)
 }
+  
+  
 
 # This is the start of the server part
 # this gives the input and output
@@ -335,46 +292,23 @@ extractData <- reactive({
   st.out <- st.all[st.all$p_value_slope < 0.05,]
   st.neg <- st.out[st.out$slope < 0,]
   st.pos <- st.out[st.out$slope > 0,]
-  return(list(stations = st, sig.st = st.out, neg.st = st.neg, pos.st = st.pos))
+  return(list(stations = st.all, sig.st = st.out, neg.st = st.neg, pos.st = st.pos))
 })
 
 
-output$rain_histogram <- renderPlot({
-  if (input$goButton == 0)
-    return() 
- # updateTabsetPanel(session, selected="summary")
-  hist.fun(dat=as.data.frame(extractData()$sig.st), type="rain")
-  # plot the histograms
-  #isolate(hist.fun(dat = as.data.frame(extractData())))
-})
-
-output$maxT_histogram <- renderPlot({
-  if (input$goButton == 0)
-    return() 
-  # updateTabsetPanel(session, selected="summary")
-  hist.fun(dat=extractData()$sig.st, type="max_temp")
-  # plot the histograms
-  #isolate(hist.fun(dat = as.data.frame(extractData())))
-})
-
-output$minT_histogram <- renderPlot({
-  if (input$goButton == 0)
-    return() 
-  # updateTabsetPanel(session, selected="summary")
-  hist.fun(dat=extractData()$sig.st, type="min_temp")
-  # plot the histograms
-  #isolate(hist.fun(dat = as.data.frame(extractData())))
-})
 
 # Make the map of Australia with analysed data
+# and a histogram
 output$rain_map <- renderPlot({
   if (input$goButton == 0)
     return("") 
   # 
   # only run when submit is pushed??
     isolate({ 
-      plot.map(Data_in = extractData(), dtype="rain" )
-    })
+      fig1 <- plot.map(Data_in = extractData(), dtype="rain" )
+      fig2 <- hist.fun(Data_in=as.data.frame(extractData()$sig.st), dtype="rain")
+      multiplot(fig1,fig2,cols=1)
+      })
 })
 
 # Make a map of Australia with pos and neg slopes
@@ -385,7 +319,9 @@ output$maxT_map <- renderPlot({
   # only run when submit is pushed??
   
   isolate({ 
-    plot.map(Data_in = extractData(), dtype="max_temp" )
+    fig1 <-  plot.map(Data_in = extractData(), dtype="max_temp" )
+    fig2 <- hist.fun(Data_in=as.data.frame(extractData()$sig.st), dtype="max_temp")
+    multiplot(fig1,fig2,cols=1)
   })
 })
 
@@ -395,7 +331,10 @@ output$minT_map <- renderPlot({
   # 
   # only run when submit is pushed??
   isolate({ 
-    plot.map(Data_in = extractData(), dtype="min_temp" )
+    fig1 <- plot.map(Data_in = extractData(), dtype="min_temp" )
+    fig2 <- hist.fun(Data_in=as.data.frame(extractData()$sig.st), dtype="min_temp")
+    multiplot(fig1,fig2,cols=1)
+    
   })
 })
 
@@ -444,7 +383,7 @@ output$CautionComment <- renderPrint({
      if (input$goButton == 0) ""
       # this is just a test to see if everything works
       "for testing" 
-       as.numeric(as.character(StationOut()$Lat))    
+       str(extractData()$sig.st)    
       #DateInput()$lm.line[1:100]
    })
 

@@ -10,7 +10,7 @@ shinyUI(fluidPage(
                            value = "Observatory hill"),
                  br(),
                  selectInput("state", label = "State or Territory",
-                             choices = c("ACT", "NSW", "QLD", "VIC", "WA", "TAS", "NT"),
+                             choices = c("ACT", "NSW", "QLD", "VIC", "SA", "WA", "TAS", "NT"),
                              selected ="NSW"),
                  br(),
                  # now choose Temperature or Rainfall
@@ -42,8 +42,8 @@ shinyUI(fluidPage(
               plotOutput("plot"),
               textOutput("CautionComment"),
               br(),          
-              textOutput("testoutput1"),
-            #  textOutput("testoutput2"),
+             # textOutput("testoutput1"),
+             # textOutput("testoutput2"),
                 
               "Comment:this app is going to allow people to analyse different temperature and rainfall timeseries"
         ),
@@ -51,7 +51,7 @@ shinyUI(fluidPage(
                  "Hit the", strong("GO"), "button to display maps and histograms.",
                  "This pages displays the distribution of analysed slopes for rainfall as maps and as histograms",
                  br(),
-                 plotOutput("rain_map"),
+                 plotOutput("rain_map", height = 800, width = 500),
                  "Red points are negative significant slopes, blue points are positive significant slopes, black points are non-significant slopes"#,
                  #plotOutput("rain_histogram", height = 700, width = 400)
                  ), 
@@ -59,15 +59,14 @@ shinyUI(fluidPage(
                  "Hit the", strong("GO"), "button to display maps and histograms.",
                  "This pages displays the distribution of analysed slopes for maximum temperature as maps and as histograms",
                  br(),
-                 plotOutput("maxT_map"),
-                 "Red points are negative significant slopes, blue points are positive significant slopes, black points are non-significant slopes"#,
-                 #plotOutput("maxT_histogram", height = 700, width = 400)
+                 plotOutput("maxT_map", height = 800, width = 500),
+                 "Red points are negative significant slopes, blue points are positive significant slopes, black points are non-significant slopes"
                  ), 
         tabPanel(title = h4("Minimum T"), value="minT",
                "Hit the", strong("GO"), "button to display maps and histograms.",
                "This pages displays the distribution of analysed slopes for minimum temperature as maps and as histograms",
                br(),
-               plotOutput("minT_map"),
+               plotOutput("minT_map", height = 800, width = 500),
                "Red points are negative significant slopes, blue points are positive significant slopes, black points are non-significant slopes"#,      
                #plotOutput("maxT_histogram", height = 700, width = 400)
         ) 
