@@ -9,3 +9,8 @@ This app was first described on my blog: http://blogs.usyd.edu.au/waterhydrosu/2
 If you are interested, please contact me on willemvervoort [a] gmail.com
 
 Willem 21/06/2014
+
+to do list:
+-	Frequency of analysis of each station as a heat map
+-	Histogram or other graph to indicate time periods analysed
+-	Clean up text on first page, make statistics more readable
