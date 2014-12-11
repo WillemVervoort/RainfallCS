@@ -1,0 +1,22 @@
+{
+    "contents" : "",
+    "created" : 1418296306622.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "54ACC296",
+    "lastKnownWriteTime" : 29836824280170608,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "caption" : "st.count",
+        "contentUrl" : "content?title=st.count&file=7c30e2baaa0241ec944b0fcf978ade32.htm",
+        "displayedObservations" : 14,
+        "displayedVariables" : 2,
+        "totalObservations" : 14,
+        "variables" : 2
+    },
+    "source_on_save" : false,
+    "type" : "r_dataframe"
+}

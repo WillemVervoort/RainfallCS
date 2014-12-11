@@ -46,3 +46,26 @@ multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
     }
   }
 }
+
+# 2. read in ozdata and stations Rdata
+oz.map <- read.csv("ozdata.csv")
+load("stations.Rdata")
+
+# 3. Some old code
+# # load the different tables into a data frame
+# df_main <- sqlQuery(db, "select * from main_table",as.is = c(1,2,6,7),
+#                     stringsAsFactors=F)
+# df_regr_results <- sqlQuery(db, "select * from regr_results")
+# df_regr_stats <- sqlQuery(db, "select * from regr_stats")
+
+# here code that runs when app is launched
+# This is some old code just to get the BOM stations into a Rdata file
+# stations <- read.fwf("20140617_AllBOMstations.txt", 
+#                      widths=c(7,6,43,7,7,9,10,16,4,10,9,7),
+#                     skip = 3,
+#               na.strings = c("..",".....","null"))
+# colnames(stations) <-c("Site","Dist","Site_name","Start","End","Lat",
+#                        "Lon","Source","STA","Height_m","Bar_ht","WMO")
+# save(stations, file="Stations.Rdata")
+# this could be moved to a helper script
+

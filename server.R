@@ -4,8 +4,6 @@ library(oz)
 # for fancier plotting
 library(ggplot2)
 
-# read in ozdata
-oz.map <- read.csv("ozdata.csv")
 
 # # connect to data source
 # db <- odbcConnect("testwillem", uid="rver4657", pwd="7564revrMySQL")
@@ -26,23 +24,7 @@ oz.map <- read.csv("ozdata.csv")
 #  sqlClear(db,"regr_stats")
 #  odbcClose(db)
 
-# # load the different tables into a data frame
-# df_main <- sqlQuery(db, "select * from main_table",as.is = c(1,2,6,7),
-#                     stringsAsFactors=F)
-# df_regr_results <- sqlQuery(db, "select * from regr_results")
-# df_regr_stats <- sqlQuery(db, "select * from regr_stats")
 
-# here code that runs when app is launched
-# This is some old code just to get the BOM stations into a Rdata file
-# stations <- read.fwf("20140617_AllBOMstations.txt", 
-#                      widths=c(7,6,43,7,7,9,10,16,4,10,9,7),
-#                     skip = 3,
-#               na.strings = c("..",".....","null"))
-# colnames(stations) <-c("Site","Dist","Site_name","Start","End","Lat",
-#                        "Lon","Source","STA","Height_m","Bar_ht","WMO")
-# save(stations, file="Stations.Rdata")
-# this could be moved to a helper script
-load("stations.Rdata")
 # Source the dataripper script to get the data from the BOM site
 # This is adaption of Jason Lessels' bomDailyDataripper
 source("dataripper.r")
@@ -76,6 +58,8 @@ print(t.plot)
 }
 
 # mapping plot function
+# this function needs to be expanded to include frequnecy of analysis
+# in the size of the points.
 plot.map <- function(Data_in, background=oz.map, dtype="rain") {
   p1 <- ggplot(subset(background, border=="coast"), aes(long, lat))
   p1 <- p1 + geom_path()
@@ -83,12 +67,28 @@ plot.map <- function(Data_in, background=oz.map, dtype="rain") {
   p1 <- p1 + ggtitle("Australia")
   #    p
   #    p1 <- p +  geom_polygon(data=subset(oz.map,border="coast"), aes(fill=state))
+  # Calculate the number of times a station is analysed
+  st.count <- count(Data_in$stations$station_ID)
+  for (i in 1:nrow(st.count)) {
+    Data_in$stations[Data_in$stations$station_ID %in% st.count$x[i],"count"] <- st.count$freq[i]
+  }
+  #neg slopes
+  st.count <- count(Data_in$neg.st$station_ID)
+  for (i in 1:nrow(st.count)) {
+    Data_in$neg.st[Data_in$neg.st$station_ID %in% st.count$x[i],"count"] <- st.count$freq[i]
+  }
+ # pos slopes
+  st.count <- count(Data_in$pos.st$station_ID)
+  for (i in 1:nrow(st.count)) {
+    Data_in$pos.st[Data_in$pos.st$station_ID %in% st.count$x[i],"count"] <- st.count$freq[i]
+  }
+  
   p1 <- p1 + geom_point(data=subset(Data_in$stations,Data_in$stations$data_type==dtype),
-                        aes(x=lon,y=lat),colour="black",size=3)
+                        aes(x=lon,y=lat),colour="black",size=count)
   p1 <- p1 + geom_point(data=subset(Data_in$neg.st,Data_in$neg.st$data_type==dtype),
-                        aes(x=lon,y=lat),colour="red",size=4)
+                        aes(x=lon,y=lat),colour="red",size=count)
   p1 <- p1 + geom_point(data=subset(Data_in$pos.st,Data_in$pos.st$data_type==dtype),
-                        aes(x=lon,y=lat),colour="blue",size=4)
+                        aes(x=lon,y=lat),colour="blue",size=count)
   return(p1)
   
   
@@ -112,7 +112,22 @@ hist.fun <- function(Data_in, dtype="rain") {
   return(p2)
 }
   
+# histogram plotting function for times analysed
+hist.timefun <- function(Data_in, dtype="rain") {
   
+  Data_in$times <- round(as.numeric(difftime(Data_in$end_date,Data_in$start_date))/365,0)
+  
+  label <- ifelse(dtype=="rain","Rainfall",
+                  ifelse(dtype=="max_temp","Maximum T","Mimimum T"))
+    
+  p3 <- ggplot(subset(Data_in,Data_in$data_type==dtype),
+               aes(x=times))
+  p3 <- p3 + geom_histogram() +
+    xlab(paste("Number of years analysed for significant",label,
+               "slopes with p-value < 0.05"))
+  return(p3)
+}
+
 
 # This is the start of the server part
 # this gives the input and output
@@ -283,7 +298,7 @@ extractData <- reactive({
     test <- sqlQuery(db,paste("SELECT station_ID, slope, p_value_slope, data_type FROM regr_results"))
   #    hist(dat$slope)
   #  test <- test[test$p_value_slope < 0.05,]
-   st <- sqlQuery(db,paste("SELECT station_ID, lat, lon FROM main_table"))
+   st <- sqlQuery(db,paste("SELECT station_ID, lat, lon, start_date, end_date FROM main_table"))
   #    hist(dat$slope)
   st.all <- cbind(st,test)
   # close data base
@@ -307,7 +322,8 @@ output$rain_map <- renderPlot({
     isolate({ 
       fig1 <- plot.map(Data_in = extractData(), dtype="rain" )
       fig2 <- hist.fun(Data_in=as.data.frame(extractData()$sig.st), dtype="rain")
-      multiplot(fig1,fig2,cols=1)
+      fig3 <- hist.timefun(Data_in=as.data.frame(extractData()$sig.st), dtype="rain")
+      multiplot(fig1,fig2,fig3,cols=1)
       })
 })
 
@@ -321,7 +337,8 @@ output$maxT_map <- renderPlot({
   isolate({ 
     fig1 <-  plot.map(Data_in = extractData(), dtype="max_temp" )
     fig2 <- hist.fun(Data_in=as.data.frame(extractData()$sig.st), dtype="max_temp")
-    multiplot(fig1,fig2,cols=1)
+    fig3 <- hist.timefun(Data_in=as.data.frame(extractData()$sig.st), dtype="max_temp")
+    multiplot(fig1,fig2,fig3,cols=1)
   })
 })
 
@@ -333,7 +350,8 @@ output$minT_map <- renderPlot({
   isolate({ 
     fig1 <- plot.map(Data_in = extractData(), dtype="min_temp" )
     fig2 <- hist.fun(Data_in=as.data.frame(extractData()$sig.st), dtype="min_temp")
-    multiplot(fig1,fig2,cols=1)
+    fig3 <- hist.timefun(Data_in=as.data.frame(extractData()$sig.st), dtype="min_temp")
+    multiplot(fig1,fig2,fig3,cols=1)
     
   })
 })
@@ -349,8 +367,8 @@ output$dateMsg <- renderPrint({
 output$slope <- renderPrint({
   if (input$goButton == 0) return("")
   isolate({
-  cat("The slope of the regression line is",coef(DateInput()$lm.mod)[2],
-        " with a p-value of",summary(DateInput()$lm.mod)$coefficients[2,4],".")
+  cat("The slope of the regression line is",round(coef(DateInput()$lm.mod)[2],3),
+        " with a p-value of",round(summary(DateInput()$lm.mod)$coefficients[2,4],3),".")
   cat(ifelse(summary(DateInput()$lm.mod)$coefficients[2,4]>0.05,
          " Statistically this means there is more than a 5% chance that this slope is similar to 0, 
          or we are not confident there is actually a trend.",
@@ -364,8 +382,8 @@ output$slope <- renderPrint({
 output$fitResults <- renderPrint({
   if (input$goButton == 0) return("")
   isolate(
-    cat("The adj. r_squared of the line fit is",summary(DateInput()$lm.mod)$adj.r.squared,
-      " with an average residual value (RMSE) of",summary(DateInput()$lm.mod)$sigma,
+    cat("The adj. r_squared of the line fit is",round(summary(DateInput()$lm.mod)$adj.r.squared,2),
+      " with an average residual value (RMSE) of",round(summary(DateInput()$lm.mod)$sigma,3),
       ifelse(input$type=="rain","mm","degrees C"),"."
       ," In general terms, the closer the adj. r-squared is to 1 means a better fit of the model to the data.")
   )
@@ -383,7 +401,7 @@ output$CautionComment <- renderPrint({
      if (input$goButton == 0) ""
       # this is just a test to see if everything works
       "for testing" 
-       str(extractData()$sig.st)    
+      # str(extractData()$sig.st)    
       #DateInput()$lm.line[1:100]
    })
 
